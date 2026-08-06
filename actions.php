@@ -119,8 +119,8 @@ switch ($action) {
                 
                 flash_message('success', "XDDB has been successfully updated to v" . $latest . "!");
                 
-                // Restart xddb service in background to clear any system caches
-                shell_exec('(sleep 1; sudo xddb restart || xddb restart) > /dev/null 2>&1 &');
+                // Restart xddb service in background (detached to survive PHP death)
+                shell_exec('nohup bash -c "sleep 1; /usr/local/bin/xddb restart || xddb restart" > /dev/null 2>&1 &');
                 
                 redirect('dashboard.php');
             } else {

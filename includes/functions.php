@@ -1,6 +1,8 @@
 <?php
 
-define('XDDB_VERSION', '1.1.3');
+if (!defined('XDDB_VERSION')) {
+    define('XDDB_VERSION', '1.1.4');
+}
 
 function check_for_updates() {
     if (!defined('XDDB_VERSION')) return false;
