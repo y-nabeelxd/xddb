@@ -1,12 +1,13 @@
 <div align="center">
   <h1>XDDB - Modern Database Manager</h1>
   <p>A lightning-fast, modern, and professional web-based MySQL/MariaDB database manager.</p>
+  <p><strong>100% Free and Open Source</strong></p>
 </div>
 
 ---
 
 ## ⚡ What is XDDB?
-XDDB is a highly polished, lightweight, and incredibly fast web-based management tool for MySQL and MariaDB databases. Built for developers who want a beautiful, seamless, and powerful database interface without the clutter and sluggishness of legacy tools.
+XDDB is a highly polished, lightweight, and incredibly fast web-based management tool for MySQL and MariaDB databases. Built for developers who want a beautiful, seamless, and powerful database interface without the clutter and sluggishness of legacy tools. As a fully **Free and Open Source** project, it is completely transparent and community-driven!
 
 ## 🚀 Why XDDB?
 Traditional database managers can feel clunky, outdated, and slow. XDDB fundamentally changes how you interact with your databases:
@@ -38,8 +39,8 @@ Once installed, you can manage the background service using these global command
 After installation, open your web browser and navigate to:
 `http://YOUR_SERVER_IP:7070/`
 
-## 🔄 Automatic Updates
-XDDB features a native Auto-Update engine! When a new version is released, a glowing "Update Available" button will appear in your dashboard header. A single click will safely download and install the latest features without losing your data.
+## 🤝 Contributing
+We absolutely welcome collaborators! As an open-source project, your contributions help make XDDB better for everyone. Whether it's fixing a bug, improving the UI, adding a new feature, or writing documentation, feel free to fork this repository, create a branch, and submit a Pull Request!
 
 ---
 <div align="center">
