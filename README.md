@@ -22,22 +22,36 @@ XDDB is built for **developers, database administrators, and sysadmins** who wan
 
 ## 📦 Installation
 
-To install XDDB on Ubuntu/Debian, simply run the following command in your terminal. It will automatically install all dependencies (PHP, MySQL/MariaDB if missing), configure the firewall, and start the XDDB service in the background!
+### Option 1: Automated Installer (Ubuntu / Debian / WSL)
+To install XDDB on Debian-based systems, simply run the following command in your terminal. It will automatically install all dependencies (PHP, MySQL/MariaDB if missing), configure the firewall, and start the XDDB service in the background!
 
 ```bash
 curl -sSL https://nabeelxd.vercel.app/xddb-ubuntu-installer | sudo bash
 ```
 
-### Managing the XDDB Service
+**Managing the XDDB Service (Automated Install):**
 Once installed, you can manage the background service using these global commands:
 - `sudo xddb start` - Start the XDDB server
 - `sudo xddb stop` - Stop the XDDB server
 - `sudo xddb restart` - Restart the XDDB server
 - `sudo xddb status` - Check if XDDB is running
 
+---
+
+### Option 2: Manual Installation (Windows, macOS, & Other Linux)
+XDDB is built with native PHP and is entirely cross-platform! If you are on Windows, macOS, or another Linux distribution (like CentOS/Fedora), you can run XDDB easily:
+
+1. Download the latest `xddb.zip` from the [Releases page](https://github.com/y-nabeelxd/xddb/releases).
+2. Extract the folder into your local environment.
+3. Serve it using your favorite PHP environment (e.g., XAMPP, WAMP, MAMP, or Laravel Valet).
+4. *Alternatively*, you can use PHP's built-in server by running this command inside the extracted folder:
+   ```bash
+   php -S 127.0.0.1:7070
+   ```
+
 ### Accessing XDDB
-After installation, open your web browser and navigate to:
-`http://YOUR_SERVER_IP:7070/`
+After installation (automated or manual), open your web browser and navigate to:
+`http://127.0.0.1:7070/` (or your server's IP address)
 
 ## 🤝 Contributing
 We absolutely welcome collaborators! As an open-source project, your contributions help make XDDB better for everyone. Whether it's fixing a bug, improving the UI, adding a new feature, or writing documentation, feel free to fork this repository, create a branch, and submit a Pull Request!
