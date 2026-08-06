@@ -51,7 +51,17 @@ if (isset($_SESSION['user'])) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>XDDB Login</title>
+  <title>XDDB · Login</title>
+  <!-- Inline theme restore — runs before CSS paints, prevents white flash -->
+  <script>
+    (function() {
+      var t = localStorage.getItem('pma-theme');
+      if (t === 'light' || t === 'dark') {
+        document.documentElement.setAttribute('data-theme', t);
+      }
+      // Always default to dark if no preference saved
+    })();
+  </script>
   <link rel="stylesheet" href="assets/css/theme.css?v=<?= XDDB_VERSION ?>">
 </head>
 <body>
@@ -60,7 +70,7 @@ if (isset($_SESSION['user'])) {
     <div class="login-card">
       <div class="login-logo">
         <div class="login-logo-icon"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg></div>
-        <div class="login-title">SQL Management</div>
+        <div class="login-title">XDDB</div>
         <div class="login-subtitle">Connect to your MySQL / MariaDB server</div>
       </div>
       <?php if ($error): ?>
@@ -114,7 +124,7 @@ if (isset($_SESSION['user'])) {
       </form>
     </div>
   </div>
-  <footer class="app-footer">Powered by <strong>TeamXD</strong> · created by <strong>Nabeel XD</strong></footer>
-  <script src="assets/js/app.js"></script>
+  <footer class="app-footer">Powered by <strong>TeamXD</strong> · developed by <strong>nabeelxd</strong></footer>
+  <script src="assets/js/app.js?v=<?= XDDB_VERSION ?>"></script>
 </body>
 </html>
