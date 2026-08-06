@@ -118,6 +118,10 @@ switch ($action) {
                 unset($_SESSION['xddb_update_zip']);
                 
                 flash_message('success', "XDDB has been successfully updated to v" . $latest . "!");
+                
+                // Restart xddb service in background to clear any system caches
+                shell_exec('(sleep 1; sudo xddb restart || xddb restart) > /dev/null 2>&1 &');
+                
                 redirect('dashboard.php');
             } else {
                 flash_message('error', 'Failed to open the update package.');
