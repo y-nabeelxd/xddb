@@ -32,11 +32,11 @@ switch ($active_tab) {
           </div>
 
           <!-- CSV Import Modal -->
-          <div class="guide-modal" id="csvImportModal">
-            <div class="guide-modal-content" style="max-width:500px;">
+          <div class="guide-overlay" id="csvImportModal" hidden>
+            <div class="guide-modal" style="max-width:500px;">
               <div class="guide-modal-header">
-                <h2 style="font-size:18px; margin:0;">📥 Import CSV to <?= esc($selected_table) ?></h2>
-                <button class="guide-modal-close" id="closeCsvModal">&times;</button>
+                <h2 style="font-size:16px; font-weight:600; margin:0;">📥 Import CSV to <?= esc($selected_table) ?></h2>
+                <button type="button" class="btn-icon guide-modal-close" id="closeCsvModal">&times;</button>
               </div>
               <div class="guide-modal-body">
                 <form method="POST" action="actions.php" enctype="multipart/form-data">
@@ -69,11 +69,20 @@ switch ($active_tab) {
             </div>
           </div>
           <script>
+            const csvModal = document.getElementById('csvImportModal');
             document.getElementById('btnImportCsv').addEventListener('click', () => {
-              document.getElementById('csvImportModal').style.display = 'flex';
+              csvModal.removeAttribute('hidden');
+              document.body.classList.add('guide-open');
             });
             document.getElementById('closeCsvModal').addEventListener('click', () => {
-              document.getElementById('csvImportModal').style.display = 'none';
+              csvModal.setAttribute('hidden', '');
+              document.body.classList.remove('guide-open');
+            });
+            csvModal.addEventListener('click', (e) => {
+              if (e.target === csvModal) {
+                csvModal.setAttribute('hidden', '');
+                document.body.classList.remove('guide-open');
+              }
             });
           </script>
 
