@@ -1,0 +1,8 @@
+﻿.DS_Store
+*.log
+.vscode/
+.idea/
+sync.ps1
+test_php.php
+trest.php
+recovery.ps1
