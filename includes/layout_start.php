@@ -10,7 +10,7 @@ $accent_color = $_COOKIE['xddb_accent_color'] ?? '';
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SQL Management<?= $selected_db ? ' · ' . esc($selected_db) : '' ?><?= $selected_table ? ' · ' . esc($selected_table) : '' ?></title>
-  <link rel="stylesheet" href="assets/css/theme.css">
+  <link rel="stylesheet" href="assets/css/theme.css?v=<?= XDDB_VERSION ?>">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/monokai.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">

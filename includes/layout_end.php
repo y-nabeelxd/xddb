@@ -31,7 +31,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/sql-hint.min.js"></script>
-<script src="assets/js/app.js"></script>
-<script src="assets/js/sql-editor.js"></script>
+<script src="assets/js/app.js?v=<?= XDDB_VERSION ?>"></script>
+<script src="assets/js/sql-editor.js?v=<?= XDDB_VERSION ?>"></script>
 </body>
 </html>

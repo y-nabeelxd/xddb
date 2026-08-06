@@ -51,8 +51,8 @@ if (isset($_SESSION['user'])) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SQL Management · Login</title>
-  <link rel="stylesheet" href="assets/css/theme.css">
+  <title>XDDB Login</title>
+  <link rel="stylesheet" href="assets/css/theme.css?v=<?= XDDB_VERSION ?>">
 </head>
 <body>
   <button class="btn-icon theme-toggle-btn theme-toggle-login" title="Switch theme">☀️</button>

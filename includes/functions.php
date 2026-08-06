@@ -1,6 +1,6 @@
 <?php
 
-define('XDDB_VERSION', '1.1.1');
+define('XDDB_VERSION', '1.1.2');
 
 function check_for_updates() {
     if (!defined('XDDB_VERSION')) return false;
@@ -27,11 +27,15 @@ function check_for_updates() {
                 $_SESSION['xddb_update_zip'] = $data['zipball_url'] ?? '';
                 $_SESSION['xddb_update_last_check'] = $now;
             } else {
-                if (isset($_SESSION['xddb_latest_version'])) return $_SESSION['xddb_latest_version'] > XDDB_VERSION ? $_SESSION['xddb_latest_version'] : false;
+                if (isset($_SESSION['xddb_latest_version'])) {
+                    return version_compare(XDDB_VERSION, $_SESSION['xddb_latest_version'], '<') ? $_SESSION['xddb_latest_version'] : false;
+                }
                 return false;
             }
         } else {
-            if (isset($_SESSION['xddb_latest_version'])) return $_SESSION['xddb_latest_version'] > XDDB_VERSION ? $_SESSION['xddb_latest_version'] : false;
+            if (isset($_SESSION['xddb_latest_version'])) {
+                return version_compare(XDDB_VERSION, $_SESSION['xddb_latest_version'], '<') ? $_SESSION['xddb_latest_version'] : false;
+            }
             return false;
         }
     }

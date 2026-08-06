@@ -76,14 +76,21 @@ switch ($action) {
                             if ( is_dir($src . '/' . $file) ) {
                                 recursive_copy($src . '/' . $file, $dst . '/' . $file);
                             } else {
-                                copy($src . '/' . $file, $dst . '/' . $file);
+                                if (!@copy($src . '/' . $file, $dst . '/' . $file)) {
+                                    throw new Exception("Failed to copy file: " . $file . ". Check directory permissions.");
+                                }
                             }
                         }
                     }
                     closedir($dir);
                 }
                 
-                recursive_copy($source_dir, __DIR__);
+                try {
+                    recursive_copy($source_dir, __DIR__);
+                } catch (Exception $e) {
+                    flash_message('error', $e->getMessage());
+                    redirect('dashboard.php');
+                }
                 
                 if (function_exists('opcache_reset')) {
                     opcache_reset();
