@@ -116,12 +116,13 @@ switch ($action) {
                 
                 unset($_SESSION['xddb_latest_version']);
                 unset($_SESSION['xddb_update_zip']);
+                unset($_SESSION['xddb_update_last_check']);
+                
+                if (function_exists('opcache_reset')) {
+                    opcache_reset();
+                }
                 
                 flash_message('success', "XDDB has been successfully updated to v" . $latest . "!");
-                
-                // Restart xddb service in background (detached to survive PHP death)
-                shell_exec('nohup bash -c "sleep 1; /usr/local/bin/xddb restart || xddb restart" > /dev/null 2>&1 &');
-                
                 redirect('dashboard.php');
             } else {
                 flash_message('error', 'Failed to open the update package.');
