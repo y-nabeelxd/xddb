@@ -265,11 +265,11 @@
     }
     snippetsTable.innerHTML = snippets.map((s, i) => `
       <tr>
-        <td><strong>${s.name.replace(/</g, '&lt;')}</strong></td>
-        <td><code style="background:var(--bg-tertiary);padding:2px 4px;border-radius:3px;display:block;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.sql.replace(/</g, '&lt;')}</code></td>
-        <td>
-          <button class="btn btn-secondary btn-sm" onclick="window.useSnippet(${i})">Use</button>
-          <button class="btn btn-danger btn-sm" onclick="window.deleteSnippet(${i})">Del</button>
+        <td style="padding-left:16px;"><strong>${s.name.replace(/</g, '&lt;')}</strong></td>
+        <td><code style="background:var(--bg-tertiary);padding:4px 8px;border-radius:4px;display:block;max-width:450px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;border:1px solid var(--border);">${s.sql.replace(/</g, '&lt;')}</code></td>
+        <td style="text-align:right; padding-right:16px;">
+          <button class="btn btn-secondary btn-sm" onclick="window.useSnippet(${i})" title="Use Snippet">Use</button>
+          <button class="btn btn-danger btn-sm" onclick="window.deleteSnippet(${i})" title="Delete Snippet">&times;</button>
         </td>
       </tr>
     `).join('');

@@ -85,6 +85,10 @@ switch ($action) {
                 
                 recursive_copy($source_dir, __DIR__);
                 
+                if (function_exists('opcache_reset')) {
+                    opcache_reset();
+                }
+                
                 // Cleanup
                 function recursive_delete($dir) {
                     if (is_dir($dir)) {
