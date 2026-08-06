@@ -25,7 +25,7 @@
     </div>
   </div>
 
-  <footer class="app-footer">Powered by <strong>TeamXD</strong> · created by <strong>Nabeel XD</strong></footer>
+  <footer class="app-footer">Powered by <strong>TeamXD</strong> · created by <strong>Nabeel XD</strong> v<?= XDDB_VERSION ?></footer>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>

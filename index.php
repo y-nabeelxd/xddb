@@ -127,7 +127,7 @@ if (isset($_SESSION['user'])) {
       </form>
     </div>
   </div>
-  <footer class="app-footer">Powered by <strong>TeamXD</strong> · developed by <strong>nabeelxd</strong></footer>
+  <footer class="app-footer">Powered by <strong>TeamXD</strong> · created by <strong>Nabeel XD</strong> v<?= XDDB_VERSION ?></footer>
   <script src="assets/js/app.js?v=<?= XDDB_VERSION ?>"></script>
 </body>
 </html>

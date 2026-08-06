@@ -48,6 +48,8 @@ $accent_color = $_COOKIE['xddb_accent_color'] ?? '';
     <div class="header-right">
       <?php if ($update_ver = check_for_updates()): ?>
         <a href="actions.php?action=update_app" class="btn btn-primary btn-sm" style="animation: pulse 2s infinite; background: var(--accent); color: white; border: none; font-weight: 600;">✨ Update Available (v<?= esc($update_ver) ?>)</a>
+      <?php else: ?>
+        <a href="actions.php?action=check_update" class="btn btn-secondary btn-sm" title="Check for updates" style="font-weight: 500;">🔄 Check for Update</a>
       <?php endif; ?>
       <span class="server-badge"><?= esc($user) ?>@<?= esc($host) ?>:<?= esc($port) ?></span>
       <input type="color" id="theme-color-picker" title="Change accent color" value="<?= $accent_color ?: '#0070f3' ?>" style="border:none; padding:0; width:22px; height:22px; border-radius:4px; background:none; cursor:pointer; vertical-align:middle;">

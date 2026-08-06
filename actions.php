@@ -34,6 +34,14 @@ function action_redirect($params) {
 
 try {
 switch ($action) {
+    case 'check_update':
+        unset($_SESSION['xddb_latest_version']);
+        unset($_SESSION['xddb_update_last_check']);
+        unset($_SESSION['xddb_update_zip']);
+        flash_message('success', 'Checked for latest updates.');
+        action_redirect($redirect_params);
+        break;
+
     case 'update_app':
         $zip_url = $_SESSION['xddb_update_zip'] ?? '';
         $latest = $_SESSION['xddb_latest_version'] ?? '';
