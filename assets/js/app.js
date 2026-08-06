@@ -284,7 +284,10 @@
       const ta = document.querySelector('textarea[name="sql_query"]');
       if (ta) ta.value = s.sql;
     }
-    if (snippetsModal) snippetsModal.style.display = 'none';
+    if (snippetsModal) {
+      snippetsModal.setAttribute('hidden', '');
+      document.body.classList.remove('guide-open');
+    }
   };
 
   window.deleteSnippet = function(index) {
@@ -297,11 +300,21 @@
 
   if (snippetsBtn && snippetsModal) {
     snippetsBtn.addEventListener('click', function() {
-      snippetsModal.style.display = 'flex';
+      snippetsModal.removeAttribute('hidden');
+      document.body.classList.add('guide-open');
       loadSnippets();
     });
-    closeSnippetsBtn.addEventListener('click', function() {
-      snippetsModal.style.display = 'none';
+    if (closeSnippetsBtn) {
+      closeSnippetsBtn.addEventListener('click', function() {
+        snippetsModal.setAttribute('hidden', '');
+        document.body.classList.remove('guide-open');
+      });
+    }
+    snippetsModal.addEventListener('click', function(e) {
+      if (e.target === snippetsModal) {
+        snippetsModal.setAttribute('hidden', '');
+        document.body.classList.remove('guide-open');
+      }
     });
     if (saveSnippetBtn) {
       saveSnippetBtn.addEventListener('click', function() {

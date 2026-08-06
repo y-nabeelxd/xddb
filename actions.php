@@ -95,6 +95,9 @@ switch ($action) {
                 if (function_exists('opcache_reset')) {
                     opcache_reset();
                 }
+                if (function_exists('apcu_clear_cache')) {
+                    apcu_clear_cache();
+                }
                 
                 // Cleanup
                 function recursive_delete($dir) {
@@ -122,8 +125,45 @@ switch ($action) {
                     opcache_reset();
                 }
                 
-                flash_message('success', "XDDB has been successfully updated to v" . $latest . "!");
-                redirect('dashboard.php');
+                $_SESSION['flash_message'] = [
+                    'type' => 'success',
+                    'text' => "XDDB has been successfully updated to v" . $latest . "!"
+                ];
+                
+                // Show a friendly restarting page so we don't get ERR_CONNECTION_REFUSED
+                echo '<!DOCTYPE html>
+                <html lang="en" data-theme="dark">
+                <head>
+                  <meta charset="UTF-8">
+                  <title>Updating XDDB...</title>
+                  <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; background: #000; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+                    .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-radius: 50%; border-top-color: #0a84ff; animation: spin 1s ease-in-out infinite; margin-bottom: 20px; }
+                    @keyframes spin { to { transform: rotate(360deg); } }
+                    h2 { font-weight: 600; margin-bottom: 8px; }
+                    p { color: #98989d; font-size: 14px; }
+                  </style>
+                </head>
+                <body>
+                  <div class="spinner"></div>
+                  <h2>Update Successful</h2>
+                  <p>Restarting server to apply changes. Please wait...</p>
+                  <script>
+                    setTimeout(function() {
+                        window.location.href = "dashboard.php";
+                    }, 4000);
+                  </script>
+                </body>
+                </html>';
+                
+                // Fire off the restart in the background, detached, so PHP can flush the output above
+                flush();
+                if (function_exists('fastcgi_finish_request')) {
+                    fastcgi_finish_request();
+                }
+                
+                shell_exec('nohup sudo xddb restart > /dev/null 2>&1 &');
+                exit;
             } else {
                 flash_message('error', 'Failed to open the update package.');
                 redirect('dashboard.php');

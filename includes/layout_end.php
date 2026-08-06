@@ -4,10 +4,10 @@
   <?php require __DIR__ . '/sql_guide.php'; ?>
 
   <!-- Snippets Modal -->
-  <div class="guide-modal" id="snippetsModal">
-    <div class="guide-modal-content" style="max-width:850px;">
+  <div class="guide-overlay" id="snippetsModal" hidden>
+    <div class="guide-modal" style="max-width:850px;">
       <div class="guide-modal-header">
-        <h2 style="font-size:18px; margin:0;">💾 Saved SQL Snippets</h2>
+        <h2 style="font-size:16px; font-weight:600; margin:0;">💾 Saved SQL Snippets</h2>
         <button class="guide-modal-close" id="closeSnippetsBtn">&times;</button>
       </div>
       <div class="guide-modal-body">
@@ -15,7 +15,7 @@
           <input type="text" id="snippet-name" class="form-input" placeholder="Snippet Name (e.g. Monthly Report)" style="flex:1;">
           <button type="button" class="btn btn-primary" id="saveSnippetBtn">Save Current SQL Editor Content</button>
         </div>
-        <div class="table-wrap" style="border:1px solid var(--border); border-radius: var(--radius-md);">
+        <div class="table-wrap">
           <table class="data-table" id="snippets-table">
             <thead><tr><th style="width:200px; padding-left:16px;">Name</th><th>SQL Preview</th><th style="width:140px; text-align:right; padding-right:16px;">Actions</th></tr></thead>
             <tbody></tbody>
