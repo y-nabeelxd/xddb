@@ -768,15 +768,6 @@ a:hover {
   overflow: hidden;
 }
 
-.login-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  background: linear-gradient(90deg, var(--accent), #00d2ff);
-}
 
 .login-logo {
   text-align: center;

@@ -5,7 +5,10 @@ define('XDDB_VERSION', '1.1.0');
 function check_for_updates() {
     if (!defined('XDDB_VERSION')) return false;
     
-    if (isset($_SESSION['xddb_latest_version'])) {
+    $now = time();
+    $cache_time = 600; // 10 minutes cache
+    
+    if (isset($_SESSION['xddb_latest_version']) && isset($_SESSION['xddb_update_last_check']) && ($now - $_SESSION['xddb_update_last_check']) < $cache_time) {
         $latest = $_SESSION['xddb_latest_version'];
     } else {
         $ch = curl_init();
@@ -22,10 +25,13 @@ function check_for_updates() {
                 $latest = ltrim($data['tag_name'], 'vV');
                 $_SESSION['xddb_latest_version'] = $latest;
                 $_SESSION['xddb_update_zip'] = $data['zipball_url'] ?? '';
+                $_SESSION['xddb_update_last_check'] = $now;
             } else {
+                if (isset($_SESSION['xddb_latest_version'])) return $_SESSION['xddb_latest_version'] > XDDB_VERSION ? $_SESSION['xddb_latest_version'] : false;
                 return false;
             }
         } else {
+            if (isset($_SESSION['xddb_latest_version'])) return $_SESSION['xddb_latest_version'] > XDDB_VERSION ? $_SESSION['xddb_latest_version'] : false;
             return false;
         }
     }
