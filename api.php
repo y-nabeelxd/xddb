@@ -30,6 +30,18 @@ $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 try {
 switch ($action) {
+    case 'server_metrics':
+        $status = get_server_status($conn);
+        $res = run_query($conn, "SHOW PROCESSLIST");
+        $processlist = [];
+        if ($res['success'] && $res['result'] instanceof mysqli_result) {
+            while ($row = $res['result']->fetch_assoc()) {
+                $processlist[] = $row;
+            }
+        }
+        json_response(['status' => $status, 'processlist' => $processlist]);
+        break;
+
     case 'get_context':
         $databases = get_databases($conn);
         $context = ['databases' => $databases, 'tables' => []];

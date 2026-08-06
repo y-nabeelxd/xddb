@@ -2,6 +2,29 @@
     </main>
   </div>
   <?php require __DIR__ . '/sql_guide.php'; ?>
+
+  <!-- Snippets Modal -->
+  <div class="guide-modal" id="snippetsModal">
+    <div class="guide-modal-content" style="max-width:700px;">
+      <div class="guide-modal-header">
+        <h2 style="font-size:18px; margin:0;">💾 Saved SQL Snippets</h2>
+        <button class="guide-modal-close" id="closeSnippetsBtn">&times;</button>
+      </div>
+      <div class="guide-modal-body">
+        <div style="margin-bottom:16px; display:flex; gap:8px;">
+          <input type="text" id="snippet-name" class="form-input" placeholder="Snippet Name (e.g. Monthly Report)" style="flex:1;">
+          <button type="button" class="btn btn-primary" id="saveSnippetBtn">Save Current SQL Editor Content</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="snippets-table">
+            <thead><tr><th style="width:150px">Name</th><th>SQL</th><th style="width:120px">Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <footer class="app-footer">Powered by <strong>TeamXD</strong> · created by <strong>Nabeel XD</strong></footer>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>

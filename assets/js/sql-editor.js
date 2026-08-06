@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
             autoCloseBrackets: true,
             extraKeys: {"Ctrl-Space": "autocomplete"}
         });
+        window.sqlEditor = editor;
 
         // Setup dimensions
         editor.setSize(null, 300);

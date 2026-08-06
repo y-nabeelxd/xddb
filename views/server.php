@@ -86,22 +86,99 @@ switch ($active_tab) {
         break;
 
     case 'status':
-        $status = get_server_status($conn);
-        $keys = ['Uptime', 'Threads_connected', 'Threads_running', 'Queries', 'Slow_queries', 'Connections', 'Max_used_connections', 'Bytes_received', 'Bytes_sent', 'Open_tables', 'Opened_tables'];
         ?>
         <div class="panel">
-          <div class="panel-header">Server Status</div>
-          <div class="panel-body" style="padding:0">
-            <div class="table-wrap" style="border:none"><table class="data-table">
-              <thead><tr><th>Variable</th><th>Value</th></tr></thead>
-              <tbody>
-                <?php foreach ($keys as $k): if (isset($status[$k])): ?>
-                  <tr><td><?= esc($k) ?></td><td><?= esc($status[$k]) ?></td></tr>
-                <?php endif; endforeach; ?>
-              </tbody>
-            </table></div>
+          <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Real-Time Server Dashboard</span>
+            <div style="font-size:12px; color:var(--text-muted);">
+              Auto-refresh: <input type="checkbox" id="auto-refresh-toggle" checked style="vertical-align:middle;">
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="stats-grid" id="real-time-metrics">
+              <div class="stat-card"><div class="stat-label">Uptime</div><div class="stat-value" id="rt-uptime">-</div></div>
+              <div class="stat-card"><div class="stat-label">Active Connections</div><div class="stat-value" id="rt-connections">-</div></div>
+              <div class="stat-card"><div class="stat-label">Queries/sec</div><div class="stat-value" id="rt-qps">-</div></div>
+              <div class="stat-card"><div class="stat-label">Slow Queries</div><div class="stat-value" id="rt-slow">-</div></div>
+            </div>
           </div>
         </div>
+        
+        <div class="panel">
+          <div class="panel-header">Active Processes (Processlist)</div>
+          <div class="panel-body" style="padding:0">
+            <div class="table-wrap" style="border:none">
+              <table class="data-table" id="processlist-table">
+                <thead><tr><th>ID</th><th>User</th><th>Host</th><th>DB</th><th>Command</th><th>Time</th><th>State</th><th>Info</th></tr></thead>
+                <tbody><tr><td colspan="8" style="text-align:center;">Loading processes...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let refreshInterval;
+            let lastQueries = 0;
+            let lastTime = 0;
+
+            function fetchMetrics() {
+                fetch('api.php?action=server_metrics')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.error) return;
+                        const status = data.status;
+                        document.getElementById('rt-uptime').innerText = status.Uptime + 's';
+                        document.getElementById('rt-connections').innerText = status.Threads_connected;
+                        document.getElementById('rt-slow').innerText = status.Slow_queries;
+
+                        // Calculate QPS
+                        const now = Date.now();
+                        const currentQueries = parseInt(status.Queries) || 0;
+                        if (lastTime > 0) {
+                            const diffSecs = (now - lastTime) / 1000;
+                            const diffQ = currentQueries - lastQueries;
+                            const qps = Math.max(0, Math.round(diffQ / diffSecs));
+                            document.getElementById('rt-qps').innerText = qps;
+                        } else {
+                            document.getElementById('rt-qps').innerText = '0';
+                        }
+                        lastQueries = currentQueries;
+                        lastTime = now;
+
+                        // Render processlist
+                        const tbody = document.querySelector('#processlist-table tbody');
+                        if (data.processlist && data.processlist.length > 0) {
+                            tbody.innerHTML = data.processlist.map(p => `
+                                <tr>
+                                    <td>${p.Id}</td>
+                                    <td>${p.User}</td>
+                                    <td>${p.Host}</td>
+                                    <td>${p.db || '-'}</td>
+                                    <td>${p.Command}</td>
+                                    <td>${p.Time}s</td>
+                                    <td>${p.State || '-'}</td>
+                                    <td><code style="background:var(--bg-tertiary);padding:2px 4px;border-radius:3px;">${p.Info ? p.Info.substring(0, 50) + (p.Info.length > 50 ? '...' : '') : '-'}</code></td>
+                                </tr>
+                            `).join('');
+                        } else {
+                            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No active processes</td></tr>';
+                        }
+                    });
+            }
+
+            fetchMetrics();
+            refreshInterval = setInterval(fetchMetrics, 2000);
+
+            document.getElementById('auto-refresh-toggle').addEventListener('change', function(e) {
+                if (e.target.checked) {
+                    refreshInterval = setInterval(fetchMetrics, 2000);
+                } else {
+                    clearInterval(refreshInterval);
+                }
+            });
+        });
+        </script>
         <?php
         break;
 
@@ -139,6 +216,16 @@ switch ($active_tab) {
                 <div class="form-group"><label class="form-label">Username</label><input type="text" name="new_user" class="form-input" required></div>
                 <div class="form-group"><label class="form-label">Host</label><input type="text" name="new_host" class="form-input" value="%" required></div>
                 <div class="form-group"><label class="form-label">Password</label><input type="password" name="new_pass" class="form-input" required></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Privileges (Global)</label>
+                <div style="display:flex; gap:16px;">
+                  <label><input type="checkbox" name="privs[]" value="ALL PRIVILEGES" checked> ALL PRIVILEGES</label>
+                  <label><input type="checkbox" name="privs[]" value="SELECT"> SELECT</label>
+                  <label><input type="checkbox" name="privs[]" value="INSERT"> INSERT</label>
+                  <label><input type="checkbox" name="privs[]" value="UPDATE"> UPDATE</label>
+                  <label><input type="checkbox" name="privs[]" value="DELETE"> DELETE</label>
+                </div>
               </div>
               <div class="form-actions"><button type="submit" class="btn btn-primary">Create User</button></div>
             </form>

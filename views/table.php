@@ -21,10 +21,62 @@ switch ($active_tab) {
         $col_names = !empty($rows) ? array_keys($rows[0]) : array_column($columns, 'Field');
         ?>
         <div class="panel">
-          <div class="panel-header">
-            Browse — <?= esc($selected_table) ?>
-            <span style="font-weight:400;color:var(--text-muted)"><?= $total ?> row(s)</span>
+          <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              Browse — <?= esc($selected_table) ?>
+              <span style="font-weight:400;color:var(--text-muted)"><?= $total ?> row(s)</span>
+            </div>
+            <div>
+              <button type="button" class="btn btn-secondary btn-sm" id="btnImportCsv">📥 Import CSV</button>
+            </div>
           </div>
+
+          <!-- CSV Import Modal -->
+          <div class="guide-modal" id="csvImportModal">
+            <div class="guide-modal-content" style="max-width:500px;">
+              <div class="guide-modal-header">
+                <h2 style="font-size:18px; margin:0;">📥 Import CSV to <?= esc($selected_table) ?></h2>
+                <button class="guide-modal-close" id="closeCsvModal">&times;</button>
+              </div>
+              <div class="guide-modal-body">
+                <form method="POST" action="actions.php" enctype="multipart/form-data">
+                  <input type="hidden" name="action" value="import_csv">
+                  <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
+                  <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
+                  
+                  <div class="form-group">
+                    <label class="form-label">Select CSV File</label>
+                    <input type="file" name="csv_file" accept=".csv" required style="display:block; width:100%; padding:8px; border:1px solid var(--border-color); background:var(--bg-tertiary); border-radius:4px;">
+                  </div>
+                  
+                  <div class="form-group">
+                    <label class="form-label" style="display:flex; align-items:center; gap:8px;">
+                      <input type="checkbox" name="has_headers" value="1" checked> First row contains column headers
+                    </label>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" style="display:flex; align-items:center; gap:8px;">
+                      <input type="checkbox" name="truncate_first" value="1"> Empty table before importing
+                    </label>
+                  </div>
+
+                  <div class="form-actions" style="margin-top:20px;">
+                    <button type="submit" class="btn btn-primary">Upload & Import</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+          <script>
+            document.getElementById('btnImportCsv').addEventListener('click', () => {
+              document.getElementById('csvImportModal').style.display = 'flex';
+            });
+            document.getElementById('closeCsvModal').addEventListener('click', () => {
+              document.getElementById('csvImportModal').style.display = 'none';
+            });
+          </script>
+
           <div class="panel-body" style="padding:0">
             <?php if (empty($rows)): ?>
               <p style="padding:16px;color:var(--text-muted)">No records found. <a href="<?= esc(base_url(['db' => $selected_db, 'table' => $selected_table, 'tab' => 'insert'])) ?>">Insert a row</a></p>

@@ -878,6 +878,105 @@ switch ($action) {
         $redirect_params['tab'] = 'import';
         break;
 
+    case 'create_user':
+        $new_user = $conn->real_escape_string($_POST['new_user'] ?? '');
+        $new_host = $conn->real_escape_string($_POST['new_host'] ?? '%');
+        $new_pass = $conn->real_escape_string($_POST['new_pass'] ?? '');
+        $privs = $_POST['privs'] ?? ['ALL PRIVILEGES'];
+        
+        if ($new_user && $new_pass) {
+            $sql = "CREATE USER '$new_user'@'$new_host' IDENTIFIED BY '$new_pass'";
+            if ($conn->query($sql)) {
+                $priv_str = in_array('ALL PRIVILEGES', $privs) ? 'ALL PRIVILEGES' : implode(', ', array_map([$conn, 'real_escape_string'], $privs));
+                if ($priv_str) {
+                    $conn->query("GRANT $priv_str ON *.* TO '$new_user'@'$new_host' WITH GRANT OPTION");
+                }
+                $conn->query("FLUSH PRIVILEGES");
+                flash_message('success', "User '$new_user'@'$new_host' created and privileges granted.");
+            } else {
+                flash_message('error', $conn->error);
+            }
+        } else {
+            flash_message('error', "Username and Password are required.");
+        }
+        $redirect_params['tab'] = 'users';
+        break;
+
+    case 'drop_user':
+        $drop_user = $conn->real_escape_string($_POST['drop_user'] ?? '');
+        $drop_host = $conn->real_escape_string($_POST['drop_host'] ?? '%');
+        if ($drop_user) {
+            if ($conn->query("DROP USER '$drop_user'@'$drop_host'")) {
+                flash_message('success', "User '$drop_user'@'$drop_host' deleted.");
+            } else {
+                flash_message('error', $conn->error);
+            }
+        }
+        $redirect_params['tab'] = 'users';
+        break;
+
+    case 'import_csv':
+        $conn->select_db($db);
+        if (!empty($_FILES['csv_file']['tmp_name'])) {
+            $has_headers = isset($_POST['has_headers']);
+            $truncate = isset($_POST['truncate_first']);
+            
+            if ($truncate) {
+                $conn->query("TRUNCATE TABLE `$table`");
+            }
+            
+            $file = fopen($_FILES['csv_file']['tmp_name'], 'r');
+            $row_idx = 0;
+            $success = 0;
+            
+            $columns = [];
+            $res = $conn->query("SHOW COLUMNS FROM `$table`");
+            while ($row = $res->fetch_assoc()) {
+                $columns[] = $row['Field'];
+            }
+            $col_map = null;
+
+            while (($data = fgetcsv($file)) !== false) {
+                if ($has_headers && $row_idx === 0) {
+                    $col_map = [];
+                    foreach ($data as $i => $h) {
+                        $h_trim = trim($h);
+                        if (in_array($h_trim, $columns)) {
+                            $col_map[$i] = $h_trim;
+                        }
+                    }
+                    $row_idx++;
+                    continue;
+                }
+                
+                $cols_to_insert = [];
+                $vals = [];
+                
+                if ($col_map) {
+                    if (empty($col_map)) continue; // No matching headers
+                    foreach ($col_map as $i => $col_name) {
+                        $cols_to_insert[] = "`" . $conn->real_escape_string($col_name) . "`";
+                        $vals[] = isset($data[$i]) ? "'" . $conn->real_escape_string($data[$i]) . "'" : "NULL";
+                    }
+                } else {
+                    for ($i = 0; $i < count($columns); $i++) {
+                        $cols_to_insert[] = "`" . $conn->real_escape_string($columns[$i]) . "`";
+                        $vals[] = isset($data[$i]) ? "'" . $conn->real_escape_string($data[$i]) . "'" : "NULL";
+                    }
+                }
+                
+                $sql = "INSERT INTO `$table` (" . implode(',', $cols_to_insert) . ") VALUES (" . implode(',', $vals) . ")";
+                if ($conn->query($sql)) {
+                    $success++;
+                }
+                $row_idx++;
+            }
+            fclose($file);
+            flash_message('success', "Imported $success rows from CSV.");
+        }
+        $redirect_params['tab'] = 'browse';
+        break;
+
     case 'add_index':
         $conn->select_db($db);
         $idx_name = $conn->real_escape_string(trim($_POST['idx_name'] ?? ''));

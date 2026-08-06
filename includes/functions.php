@@ -1,5 +1,7 @@
 <?php
 
+define('XDDB_VERSION', '1.1.0');
+
 function check_for_updates() {
     if (!defined('XDDB_VERSION')) return false;
     
@@ -316,9 +318,9 @@ function get_server_status($conn) {
 
 function get_server_variables($conn) {
     $vars = [];
-    $result = $conn->query('SHOW GLOBAL VARIABLES');
-    if ($result) {
-        while ($row = $result->fetch_assoc()) {
+    $res = run_query($conn, "SHOW VARIABLES");
+    if ($res['success'] && $res['result'] instanceof mysqli_result) {
+        while ($row = $res['result']->fetch_assoc()) {
             $vars[$row['Variable_name']] = $row['Value'];
         }
     }
@@ -327,9 +329,9 @@ function get_server_variables($conn) {
 
 function get_users($conn) {
     $users = [];
-    $result = $conn->query("SELECT User, Host FROM mysql.user ORDER BY User, Host");
-    if ($result) {
-        while ($row = $result->fetch_assoc()) {
+    $res = run_query($conn, "SELECT User, Host FROM mysql.user");
+    if ($res['success'] && $res['result'] instanceof mysqli_result) {
+        while ($row = $res['result']->fetch_assoc()) {
             $users[] = $row;
         }
     }

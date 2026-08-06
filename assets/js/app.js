@@ -238,4 +238,93 @@
       errorBox.style.display = 'none';
     });
   }
+
+  // --- Color Picker Logic ---
+  const colorPicker = document.getElementById('theme-color-picker');
+  if (colorPicker) {
+    colorPicker.addEventListener('change', function(e) {
+      const color = e.target.value;
+      document.documentElement.style.setProperty('--accent', color);
+      document.cookie = `xddb_accent_color=${color}; path=/; max-age=31536000`;
+    });
+  }
+
+  // --- Snippets Logic ---
+  const snippetsBtn = document.getElementById('openSnippetsBtn');
+  const snippetsModal = document.getElementById('snippetsModal');
+  const closeSnippetsBtn = document.getElementById('closeSnippetsBtn');
+  const saveSnippetBtn = document.getElementById('saveSnippetBtn');
+  const snippetsTable = document.querySelector('#snippets-table tbody');
+
+  function loadSnippets() {
+    if (!snippetsTable) return;
+    const snippets = JSON.parse(localStorage.getItem('xddb_snippets') || '[]');
+    if (snippets.length === 0) {
+      snippetsTable.innerHTML = '<tr><td colspan="3" style="text-align:center">No snippets saved</td></tr>';
+      return;
+    }
+    snippetsTable.innerHTML = snippets.map((s, i) => `
+      <tr>
+        <td><strong>${s.name.replace(/</g, '&lt;')}</strong></td>
+        <td><code style="background:var(--bg-tertiary);padding:2px 4px;border-radius:3px;display:block;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.sql.replace(/</g, '&lt;')}</code></td>
+        <td>
+          <button class="btn btn-secondary btn-sm" onclick="window.useSnippet(${i})">Use</button>
+          <button class="btn btn-danger btn-sm" onclick="window.deleteSnippet(${i})">Del</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  window.useSnippet = function(index) {
+    const snippets = JSON.parse(localStorage.getItem('xddb_snippets') || '[]');
+    const s = snippets[index];
+    if (s && window.sqlEditor) {
+      window.sqlEditor.setValue(s.sql);
+    } else if (s) {
+      const ta = document.querySelector('textarea[name="sql_query"]');
+      if (ta) ta.value = s.sql;
+    }
+    if (snippetsModal) snippetsModal.style.display = 'none';
+  };
+
+  window.deleteSnippet = function(index) {
+    if (!confirm('Delete this snippet?')) return;
+    const snippets = JSON.parse(localStorage.getItem('xddb_snippets') || '[]');
+    snippets.splice(index, 1);
+    localStorage.setItem('xddb_snippets', JSON.stringify(snippets));
+    loadSnippets();
+  };
+
+  if (snippetsBtn && snippetsModal) {
+    snippetsBtn.addEventListener('click', function() {
+      snippetsModal.style.display = 'flex';
+      loadSnippets();
+    });
+    closeSnippetsBtn.addEventListener('click', function() {
+      snippetsModal.style.display = 'none';
+    });
+    if (saveSnippetBtn) {
+      saveSnippetBtn.addEventListener('click', function() {
+        const nameInput = document.getElementById('snippet-name');
+        const name = nameInput.value.trim();
+        let sql = '';
+        if (window.sqlEditor) {
+          sql = window.sqlEditor.getValue().trim();
+        } else {
+          const ta = document.querySelector('textarea[name="sql_query"]');
+          if (ta) sql = ta.value.trim();
+        }
+        if (!name || !sql) {
+          alert('Please enter a snippet name and ensure the SQL editor is not empty.');
+          return;
+        }
+        const snippets = JSON.parse(localStorage.getItem('xddb_snippets') || '[]');
+        snippets.push({ name, sql });
+        localStorage.setItem('xddb_snippets', JSON.stringify(snippets));
+        nameInput.value = '';
+        loadSnippets();
+      });
+    }
+  }
+
 })();

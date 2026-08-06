@@ -2,6 +2,7 @@
 $flash = get_flash();
 $server_info = get_server_info($conn);
 $page = isset($edit_row) ? 'edit' : ($active_tab);
+$accent_color = $_COOKIE['xddb_accent_color'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
@@ -13,6 +14,9 @@ $page = isset($edit_row) ? 'edit' : ($active_tab);
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/monokai.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+  <?php if ($accent_color): ?>
+  <style>:root { --accent: <?= esc($accent_color) ?>; }</style>
+  <?php endif; ?>
 </head>
 <body>
 <div class="app-shell">
@@ -37,6 +41,8 @@ $page = isset($edit_row) ? 'edit' : ($active_tab);
         <a href="actions.php?action=update_app" class="btn btn-primary btn-sm" style="animation: pulse 2s infinite; background: var(--accent); color: white; border: none; font-weight: 600;">✨ Update Available (v<?= esc($update_ver) ?>)</a>
       <?php endif; ?>
       <span class="server-badge"><?= esc($user) ?>@<?= esc($host) ?>:<?= esc($port) ?></span>
+      <input type="color" id="theme-color-picker" title="Change accent color" value="<?= $accent_color ?: '#0070f3' ?>" style="border:none; padding:0; width:22px; height:22px; border-radius:4px; background:none; cursor:pointer; vertical-align:middle;">
+      <button type="button" class="btn btn-secondary btn-sm" id="openSnippetsBtn" title="Saved SQL Snippets">💾 Snippets</button>
       <button type="button" class="btn btn-secondary btn-sm guide-btn" id="openGuideBtn" title="SQL Reference Guide">📖 Guide</button>
       <button class="btn-icon theme-toggle-btn" title="Switch theme">☀️</button>
       <a href="logout.php" class="btn btn-danger btn-sm">Disconnect</a>
