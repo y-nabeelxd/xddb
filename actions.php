@@ -158,28 +158,183 @@ switch ($action) {
                     'text' => "XDDB has been successfully updated to v" . $latest . "!"
                 ];
                 
-                // Show a friendly restarting page so we don't get ERR_CONNECTION_REFUSED
+                // Show world-class animated updating UI
                 echo '<!DOCTYPE html>
                 <html lang="en" data-theme="dark">
                 <head>
                   <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
                   <title>Updating XDDB...</title>
                   <style>
-                    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; background: #000; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-                    .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-radius: 50%; border-top-color: #0a84ff; animation: spin 1s ease-in-out infinite; margin-bottom: 20px; }
-                    @keyframes spin { to { transform: rotate(360deg); } }
-                    h2 { font-weight: 600; margin-bottom: 8px; }
-                    p { color: #98989d; font-size: 14px; }
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body {
+                      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+                      background: #000000;
+                      color: #f5f5f7;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      min-height: 100vh;
+                      overflow: hidden;
+                      position: relative;
+                      -webkit-font-smoothing: antialiased;
+                    }
+                    .ambient-glow {
+                      position: absolute;
+                      width: 500px;
+                      height: 500px;
+                      background: radial-gradient(circle, rgba(10, 132, 255, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+                      top: 50%;
+                      left: 50%;
+                      transform: translate(-50%, -50%);
+                      pointer-events: none;
+                    }
+                    .update-card {
+                      position: relative;
+                      width: 90%;
+                      max-width: 440px;
+                      background: rgba(28, 28, 30, 0.85);
+                      border: 1px solid rgba(255, 255, 255, 0.1);
+                      border-radius: 20px;
+                      padding: 36px 32px;
+                      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8), 0 0 1px rgba(255, 255, 255, 0.2);
+                      backdrop-filter: blur(30px);
+                      -webkit-backdrop-filter: blur(30px);
+                      text-align: center;
+                      animation: cardIn 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+                    }
+                    @keyframes cardIn {
+                      from { opacity: 0; transform: translateY(16px) scale(0.97); }
+                      to { opacity: 1; transform: translateY(0) scale(1); }
+                    }
+                    .icon-wrap {
+                      width: 64px;
+                      height: 64px;
+                      margin: 0 auto 20px;
+                      border-radius: 18px;
+                      background: rgba(10, 132, 255, 0.15);
+                      border: 1px solid rgba(10, 132, 255, 0.3);
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      color: #0a84ff;
+                      position: relative;
+                    }
+                    .spinner-ring {
+                      position: absolute;
+                      inset: -4px;
+                      border: 2px solid transparent;
+                      border-top-color: #0a84ff;
+                      border-right-color: rgba(10, 132, 255, 0.3);
+                      border-radius: 22px;
+                      animation: spin 1.2s cubic-bezier(0.5, 0.1, 0.5, 0.9) infinite;
+                    }
+                    @keyframes spin { 100% { transform: rotate(360deg); } }
+                    h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 6px; }
+                    p.sub { font-size: 13px; color: #98989d; margin-bottom: 24px; }
+                    .progress-bar-wrap {
+                      height: 6px;
+                      background: rgba(255, 255, 255, 0.08);
+                      border-radius: 3px;
+                      overflow: hidden;
+                      margin-bottom: 24px;
+                    }
+                    .progress-bar-fill {
+                      height: 100%;
+                      width: 0%;
+                      background: linear-gradient(90deg, #0a84ff, #5ac8fa);
+                      border-radius: 3px;
+                      transition: width 0.4s ease;
+                    }
+                    .steps-list {
+                      display: flex;
+                      flex-direction: column;
+                      gap: 10px;
+                      text-align: left;
+                      font-size: 13px;
+                    }
+                    .step-item {
+                      display: flex;
+                      align-items: center;
+                      gap: 10px;
+                      color: #636366;
+                      transition: color 0.3s ease;
+                    }
+                    .step-item.active { color: #f5f5f7; font-weight: 500; }
+                    .step-item.done { color: #30d158; }
+                    .step-icon {
+                      width: 18px;
+                      height: 18px;
+                      border-radius: 50%;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      background: rgba(255, 255, 255, 0.06);
+                      flex-shrink: 0;
+                    }
+                    .step-item.active .step-icon { background: rgba(10, 132, 255, 0.2); color: #0a84ff; }
+                    .step-item.done .step-icon { background: rgba(48, 209, 88, 0.15); color: #30d158; }
                   </style>
                 </head>
                 <body>
-                  <div class="spinner"></div>
-                  <h2>Update Successful</h2>
-                  <p>Restarting server to apply changes. Please wait...</p>
+                  <div class="ambient-glow"></div>
+                  <div class="update-card">
+                    <div class="icon-wrap">
+                      <div class="spinner-ring"></div>
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    </div>
+                    <h2>Updating to v' . esc($latest) . '</h2>
+                    <p class="sub">Applying enhancements and restarting service</p>
+                    <div class="progress-bar-wrap">
+                      <div class="progress-bar-fill" id="pFill"></div>
+                    </div>
+                    <div class="steps-list">
+                      <div class="step-item done" id="s1">
+                        <span class="step-icon">✓</span>
+                        <span>Package downloaded & verified</span>
+                      </div>
+                      <div class="step-item done" id="s2">
+                        <span class="step-icon">✓</span>
+                        <span>Files extracted & updated</span>
+                      </div>
+                      <div class="step-item done" id="s3">
+                        <span class="step-icon">✓</span>
+                        <span>Opcache & session reset</span>
+                      </div>
+                      <div class="step-item active" id="s4">
+                        <span class="step-icon" id="s4icon">⋯</span>
+                        <span>Restarting server & reconnecting...</span>
+                      </div>
+                    </div>
+                  </div>
                   <script>
-                    setTimeout(function() {
-                        window.location.href = "dashboard.php";
-                    }, 4000);
+                    const fill = document.getElementById("pFill");
+                    fill.style.width = "40%";
+                    setTimeout(() => { fill.style.width = "75%"; }, 800);
+
+                    let attempts = 0;
+                    const maxAttempts = 30;
+                    function poll() {
+                      attempts++;
+                      fetch("dashboard.php?t=" + Date.now(), { method: "HEAD", cache: "no-store" })
+                        .then(res => {
+                          if (res.ok || res.status === 200 || res.status === 302) {
+                            fill.style.width = "100%";
+                            const s4 = document.getElementById("s4");
+                            s4.className = "step-item done";
+                            document.getElementById("s4icon").textContent = "✓";
+                            setTimeout(() => { window.location.href = "dashboard.php"; }, 400);
+                          } else {
+                            if (attempts < maxAttempts) setTimeout(poll, 600);
+                            else window.location.href = "dashboard.php";
+                          }
+                        })
+                        .catch(() => {
+                          if (attempts < maxAttempts) setTimeout(poll, 600);
+                          else window.location.href = "dashboard.php";
+                        });
+                    }
+                    setTimeout(poll, 1500);
                   </script>
                 </body>
                 </html>';

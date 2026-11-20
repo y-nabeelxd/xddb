@@ -373,4 +373,20 @@
     }
   }
 
+  // Auto-dismiss floating alerts after 4.5 seconds
+  const alerts = document.querySelectorAll('.alert');
+  if (alerts.length > 0) {
+    setTimeout(function() {
+      alerts.forEach(function(alert) {
+        alert.style.opacity = '0';
+        alert.style.transform = 'translateY(-8px) scale(0.98)';
+        setTimeout(function() {
+          if (alert.parentNode) {
+            alert.style.display = 'none';
+          }
+        }, 400);
+      });
+    }, 4500);
+  }
+
 })();

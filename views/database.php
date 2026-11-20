@@ -66,8 +66,7 @@ switch ($active_tab) {
               
               <div style="padding: 12px 16px; background: var(--bg-hover); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.6; margin-left: 4px;"><polyline points="15 10 20 15 15 20"></polyline><path d="M4 4v7a4 4 0 0 0 4 4h12"></path></svg>
-                  <label style="cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                  <label style="cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 500;">
                     <input type="checkbox" id="checkAllText"> Check all
                   </label>
                 </div>

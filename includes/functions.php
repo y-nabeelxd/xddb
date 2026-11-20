@@ -1,7 +1,7 @@
 <?php
 
 if (!defined('XDDB_VERSION')) {
-    define('XDDB_VERSION', '1.3.0');
+    define('XDDB_VERSION', '1.3.1');
 }
 
 function esc_sql_id($identifier) {
@@ -527,12 +527,6 @@ function render_sidebar_db_group($dbitem, $tables, $selected_db, $selected_table
         }
         $html .= '<button type="submit" class="sidebar-remove-recent" title="Remove from recent" aria-label="Remove from recent"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>';
         $html .= '</form>';
-    }
-    if ($table_count) {
-        $html .= '<div class="sidebar-scroll-btns">';
-        $html .= '<button type="button" class="sidebar-scroll-btn sidebar-scroll-up" title="Scroll up"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg></button>';
-        $html .= '<button type="button" class="sidebar-scroll-btn sidebar-scroll-down" title="Scroll down"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>';
-        $html .= '</div>';
     }
     $html .= '</div>';
     $html .= '<div class="sidebar-table-list' . ($is_expanded ? '' : ' collapsed') . '">';
