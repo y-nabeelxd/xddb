@@ -1,62 +1,71 @@
 <div align="center">
-  <h1>XDDB - Modern Database Manager</h1>
-  <p>A lightning-fast, modern, and professional web-based MySQL/MariaDB database manager.</p>
+  <h1>XDDB</h1>
+  <p>An elegant, fast and modern MySQL/MariaDB database manager.</p>
   <p><strong>100% Free and Open Source</strong></p>
 </div>
 
 ---
 
-## ⚡ What is XDDB?
-XDDB is a highly polished, lightweight, and incredibly fast web-based management tool for MySQL and MariaDB databases. Built for developers who want a beautiful, seamless, and powerful database interface without the clutter and sluggishness of legacy tools. As a fully **Free and Open Source** project, it is completely transparent and community-driven!
+## Overview
 
-## 🚀 Why XDDB?
-Traditional database managers can feel clunky, outdated, and slow. XDDB fundamentally changes how you interact with your databases:
-- **Lightning Fast Performance:** XDDB is designed to handle queries, schema navigation, and large datasets instantly.
-- **God-Level UI/UX:** A stunning, modern interface with native Dark Mode and Light Mode, offering a premium "enterprise" feel.
-- **Visual Schema Designer:** Drag-and-drop table relationship mapping to visually understand and build your database structures.
-- **Advanced Query Editor:** A built-in code editor with syntax highlighting, auto-completion, and history tracking.
-- **Zero Configuration:** Simply install via our command-line script, and XDDB runs instantly in the background. No complex server configurations required!
+XDDB is an elegant, lightweight and incredibly fast database manager for MySQL/MariaDB databases. It allows you to manage your databases in a very sleek and powerful manner. Since this project is 100% free and Open Source, it is transparent and community focused.
 
-## 🎯 Who is this for?
-XDDB is built for **developers, database administrators, and sysadmins** who want a modern workflow. Whether you're rapidly prototyping a new application, maintaining a massive production database, or just need to run a quick query, XDDB provides the perfect environment.
+## Why use XDDB?
 
-## 📦 Installation
+Many database managers can be slow and outdated. However, using XDDB allows you to manage your databases in a much more efficient way!
 
-### Option 1: Automated Installer (Ubuntu / Debian / WSL)
-To install XDDB on Debian-based systems, simply run the following command in your terminal. It will automatically install all dependencies (PHP, MySQL/MariaDB if missing), configure the firewall, and start the XDDB service in the background!
+- **Fast:** Very fast, with near instant query speeds, data navigation and support for large data sets.
+- **Beautiful UI:** Modern interface with both dark/light modes, giving a high end enterprise feel.
+- **Schema Visualiser:** Easily map out relationships between tables in your database.
+- **Powerful Query Editor:** An advanced editor with syntax highlighting, auto-complete and query history.
+- **No Configuration:** Simply run the command line script and XDDB will run instantly in the background. There is no complicated configuration required on servers!
+
+## Who is this for?
+
+XDDB is perfect for developers, database admins and sysadmins who want a modern way to manage their databases. Whether you're creating a prototype quickly, managing a large production database or simply running a quick query, XDDB is the perfect tool for you.
+
+## Installation
+
+### Easy Installer (Ubuntu/Debian/WSL)
+
+To install XDDB on a Debian based OS, run the following command in your terminal. This will install all required dependancies (PHP, MySQL/MariaDB if not already installed), configure the firewall, and allow XDDB to be run in the background.
 
 ```bash
 curl -sSL https://nabeelxd.vercel.app/xddb-ubuntu-installer | sudo bash
 ```
 
-**Managing the XDDB Service (Automated Install):**
-Once installed, you can manage the background service using these global commands:
-- `sudo xddb start` - Start the XDDB server
-- `sudo xddb stop` - Stop the XDDB server
-- `sudo xddb restart` - Restart the XDDB server
-- `sudo xddb status` - Check if XDDB is running
+**Managing XDDB (Easy Installer):**  
+Once installed, you can manage XDDB using the following commands:
+- `sudo xddb start` - To start XDDB
+- `sudo xddb stop` - To stop XDDB
+- `sudo xddb restart` - To restart XDDB
+- `sudo xddb status` - To check if XDDB is running
 
 ---
 
-### Option 2: Manual Installation (Windows, macOS, & Other Linux)
-XDDB is built with native PHP and is entirely cross-platform! If you are on Windows, macOS, or another Linux distribution (like CentOS/Fedora), you can run XDDB easily:
+### Manual Installer (Windows/macOS/Other Linux)
 
-1. Download the latest `xddb.zip` from the [Releases page](https://github.com/y-nabeelxd/xddb/releases).
-2. Extract the folder into your local environment.
-3. Serve it using your favorite PHP environment (e.g., XAMPP, WAMP, MAMP, or Laravel Valet).
-4. *Alternatively*, you can use PHP's built-in server by running this command inside the extracted folder:
-   ```bash
-   php -S 127.0.0.1:7070
-   ```
+XDDB is written in pure PHP, and can therefore be run on any platform! If you are running Windows, macOS, or a different Linux OS (such as CentOS/Fedora) then you can easily run XDDB:
 
-### Accessing XDDB
-After installation (automated or manual), open your web browser and navigate to:
-`http://127.0.0.1:7070/` (or your server's IP address)
+1. Download the latest `xddb.zip` file from the [Releases page](https://github.com/y-nabeelxd/xddb/releases).
+2. Extract the file.
+3. Run it using your preferred PHP server (XAMPP, WAMP, MAMP or Laravel Valet).
 
-## 🤝 Contributing
-We absolutely welcome collaborators! As an open-source project, your contributions help make XDDB better for everyone. Whether it's fixing a bug, improving the UI, adding a new feature, or writing documentation, feel free to fork this repository, create a branch, and submit a Pull Request!
+*Alternatively*, you can run it using PHP's built-in server. In the extracted folder, run:
+```bash
+php -S 127.0.0.1:7070
+```
+
+## Usage
+
+Once installed (either manually or using the easy installer), open up your web browser and go to: `http://127.0.0.1:7070/` (or your server's IP address).
+
+## Contributing
+
+We love contributors! As this is an Open Source project, any contributions you make will improve XDDB for everyone. Whether you're contributing to fix a bug, improve the UI, add new features or documentations, feel free to fork this repo, make a branch and make a Pull Request!
 
 ---
+
 <div align="center">
-  <i>Developed by NabeelXD</i>
+  <i>Developed by NabeelXDD</i>
 </div>
