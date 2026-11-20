@@ -28,7 +28,7 @@
     </div>
   </div>
 
-  <footer class="app-footer">Powered by <strong>TeamXD</strong> · created by <strong>Nabeel XD</strong> | XDDB @ v<?= XDDB_VERSION ?></footer>
+  <footer class="app-footer">Powered by <strong>TeamXDD</strong> · created by <strong>Nabeel XDD</strong> | XDDB @ v<?= XDDB_VERSION ?></footer>
 </div>
 <script src="assets/js/codemirror/codemirror.min.js"></script>
 <script src="assets/js/codemirror/sql.min.js"></script>

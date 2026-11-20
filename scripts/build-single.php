@@ -26,7 +26,7 @@ $appJs = file_get_contents($root . '/assets/js/app.js');
 $output = "<?php\n";
 $output .= "/**\n * XDDB - Modern MySQL & MariaDB Web Client (Standalone Bundle)\n";
 $output .= " * Generated on " . date('Y-m-d H:i:s') . "\n";
-$output .= " * Developed by NabeelXD | TeamXD\n */\n\n";
+$output .= " * Developed by NabeelXDD | TeamXDD\n */\n\n";
 
 // Session setup
 $output .= <<<'PHP'
