@@ -7,7 +7,10 @@
   <div class="guide-overlay" id="snippetsModal" hidden>
     <div class="guide-modal" style="max-width:850px;">
       <div class="guide-modal-header">
-        <h2 style="font-size:16px; font-weight:600; margin:0;">💾 Saved SQL Snippets</h2>
+        <h2 style="font-size:15px; font-weight:600; margin:0; display:inline-flex; align-items:center; gap:8px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          Saved SQL Snippets
+        </h2>
         <button class="guide-modal-close" id="closeSnippetsBtn">&times;</button>
       </div>
       <div class="guide-modal-body">
@@ -27,10 +30,10 @@
 
   <footer class="app-footer">Powered by <strong>TeamXD</strong> · created by <strong>Nabeel XD</strong> | XDDB @ v<?= XDDB_VERSION ?></footer>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/sql-hint.min.js"></script>
+<script src="assets/js/codemirror/codemirror.min.js"></script>
+<script src="assets/js/codemirror/sql.min.js"></script>
+<script src="assets/js/codemirror/show-hint.min.js"></script>
+<script src="assets/js/codemirror/sql-hint.min.js"></script>
 <script src="assets/js/app.js?v=<?= XDDB_VERSION ?>"></script>
 <script src="assets/js/sql-editor.js?v=<?= XDDB_VERSION ?>"></script>
 </body>

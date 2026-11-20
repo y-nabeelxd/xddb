@@ -1,7 +1,7 @@
 <?php
 
 if (!defined('XDDB_VERSION')) {
-    define('XDDB_VERSION', '1.3.1');
+    define('XDDB_VERSION', '1.3.2');
 }
 
 function esc_sql_id($identifier) {
@@ -191,6 +191,7 @@ function analyze_sql_error($error) {
 }
 
 function run_query($conn, $sql) {
+    $start_time = microtime(true);
     $result = false;
     $error = '';
     try {
@@ -199,22 +200,25 @@ function run_query($conn, $sql) {
     } catch (mysqli_sql_exception $e) {
         $error = $e->getMessage();
     }
+    $duration = round(microtime(true) - $start_time, 4);
     return [
         'success' => $result !== false,
         'result' => $result instanceof mysqli_result ? $result : null,
         'error' => analyze_sql_error($error),
         'affected' => $conn->affected_rows,
-        'insert_id' => $conn->insert_id
+        'insert_id' => $conn->insert_id,
+        'duration' => $duration
     ];
 }
 
-function add_query_history($sql) {
+function add_query_history($sql, $duration = null) {
     if (!isset($_SESSION['query_history'])) {
         $_SESSION['query_history'] = [];
     }
     array_unshift($_SESSION['query_history'], [
         'sql' => $sql,
-        'time' => date('Y-m-d H:i:s')
+        'time' => date('Y-m-d H:i:s'),
+        'duration' => $duration
     ]);
     $_SESSION['query_history'] = array_slice($_SESSION['query_history'], 0, 50);
 }

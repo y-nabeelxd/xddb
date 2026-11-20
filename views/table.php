@@ -95,6 +95,16 @@ switch ($active_tab) {
                 <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
                 <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
                 <input type="hidden" name="pk_col" value="<?= esc($pk) ?>">
+                <div class="table-search-bar" style="padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--bg-hover);">
+                  <div style="display: flex; align-items: center; gap: 8px; flex: 1; max-width: 320px;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.6;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" id="filterTableRows" class="form-input" placeholder="Filter rows in view..." style="padding: 4px 8px; font-size: 13px; width: 100%;">
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 14px; font-size: 12px; color: var(--text-muted);">
+                    <span id="filteredRowCount" style="font-variant-numeric: tabular-nums;"></span>
+                    <span style="opacity: 0.8; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Double-click cell to edit</span>
+                  </div>
+                </div>
                 <div class="table-wrap" style="border:none"><table class="data-table" id="tableBrowse">
                   <thead><tr>
                     <?php if ($pk): ?><th style="width:30px"><input type="checkbox" id="selectAllRows"></th><?php endif; ?>
@@ -105,7 +115,9 @@ switch ($active_tab) {
                     <?php foreach ($rows as $row): ?>
                       <tr>
                         <?php if ($pk): ?><td><input type="checkbox" name="selected_rows[]" class="row-checkbox" value="<?= esc($row[$pk]) ?>"></td><?php endif; ?>
-                        <?php foreach ($row as $v): ?><td><?= $v === null ? '<span class="null-val">NULL</span>' : esc(strlen($v) > 50 ? substr($v,0,50).'...' : $v) ?></td><?php endforeach; ?>
+                        <?php foreach ($row as $col_name => $v): ?>
+                          <td class="editable-cell" data-col="<?= esc($col_name) ?>" data-pk="<?= esc($pk ? ($row[$pk] ?? '') : '') ?>" data-val="<?= esc($v ?? '') ?>" title="Double-click to edit"><?= $v === null ? '<span class="null-val">NULL</span>' : esc(strlen($v) > 50 ? substr($v,0,50).'...' : $v) ?></td>
+                        <?php endforeach; ?>
                         <td class="row-actions">
                           <?php if ($pk): ?>
                             <a href="<?= esc(base_url(['db' => $selected_db, 'table' => $selected_table, 'tab' => 'insert', 'edit' => '1', 'pk_val' => $row[$pk]])) ?>" class="btn btn-secondary btn-sm" style="display:inline-flex;align-items:center;gap:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Edit</a>

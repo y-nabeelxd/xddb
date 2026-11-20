@@ -389,4 +389,133 @@
     }, 4500);
   }
 
+  // Interactive Table Grid: Live Quick Filter & Double-Click Inline Cell Editing
+  const browseTable = document.getElementById('tableBrowse');
+  if (browseTable) {
+    const csrfToken = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
+    const dbName = (document.querySelector('input[name="db"]') || {}).value || '';
+    const tableName = (document.querySelector('input[name="table"]') || {}).value || '';
+    const pkCol = (document.querySelector('input[name="pk_col"]') || {}).value || '';
+
+    // 1. Live row filter
+    const filterInput = document.getElementById('filterTableRows');
+    const countBadge = document.getElementById('filteredRowCount');
+    if (filterInput) {
+      const rows = browseTable.querySelectorAll('tbody tr');
+      const totalCount = rows.length;
+
+      filterInput.addEventListener('input', function() {
+        const q = this.value.toLowerCase().trim();
+        let visibleCount = 0;
+
+        rows.forEach(function(row) {
+          const text = row.textContent.toLowerCase();
+          const match = q === '' || text.includes(q);
+          row.style.display = match ? '' : 'none';
+          if (match) visibleCount++;
+        });
+
+        if (countBadge) {
+          countBadge.textContent = q === '' ? '' : `${visibleCount} of ${totalCount} rows`;
+        }
+      });
+    }
+
+    // 2. Double-click inline cell editing
+    browseTable.querySelectorAll('.editable-cell').forEach(function(cell) {
+      cell.addEventListener('dblclick', function() {
+        if (cell.classList.contains('is-editing')) return;
+        const currentVal = cell.getAttribute('data-val') !== null ? cell.getAttribute('data-val') : cell.textContent.trim();
+        const colName = cell.getAttribute('data-col');
+        const pkVal = cell.getAttribute('data-pk');
+
+        if (!colName || !pkVal) return;
+
+        cell.classList.add('is-editing');
+        const originalHtml = cell.innerHTML;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'cell-inline-input';
+        input.value = currentVal;
+        cell.innerHTML = '';
+        cell.appendChild(input);
+        input.focus();
+        input.select();
+
+        let isSaving = false;
+
+        function saveEdit() {
+          if (isSaving) return;
+          const newVal = input.value;
+          if (newVal === currentVal) {
+            cancelEdit();
+            return;
+          }
+          isSaving = true;
+          input.disabled = true;
+
+          const formData = new URLSearchParams();
+          formData.append('csrf_token', csrfToken);
+          formData.append('action', 'update_cell');
+          formData.append('db', dbName);
+          formData.append('table', tableName);
+          formData.append('pk_col', pkCol);
+          formData.append('pk_val', pkVal);
+          formData.append('col', colName);
+          formData.append('val', newVal);
+
+          fetch('api.php', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'X-CSRF-TOKEN': csrfToken
+            },
+            body: formData.toString()
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              cell.classList.remove('is-editing');
+              cell.setAttribute('data-val', newVal);
+              cell.textContent = newVal.length > 50 ? newVal.substring(0, 50) + '...' : newVal;
+              cell.classList.add('cell-saved-flash');
+              setTimeout(() => cell.classList.remove('cell-saved-flash'), 600);
+            } else {
+              alert('Error updating cell: ' + (data.error || 'Unknown error'));
+              cancelEdit();
+            }
+          })
+          .catch(err => {
+            alert('Request failed: ' + err.message);
+            cancelEdit();
+          });
+        }
+
+        function cancelEdit() {
+          cell.classList.remove('is-editing');
+          cell.innerHTML = originalHtml;
+        }
+
+        input.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            saveEdit();
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelEdit();
+          }
+        });
+
+        input.addEventListener('blur', function() {
+          setTimeout(function() {
+            if (cell.classList.contains('is-editing') && !isSaving) {
+              saveEdit();
+            }
+          }, 150);
+        });
+      });
+    });
+  }
+
 })();

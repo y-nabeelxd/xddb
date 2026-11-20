@@ -143,6 +143,48 @@ switch ($action) {
         ]);
         break;
 
+    case 'update_cell':
+        $db = $_POST['db'] ?? '';
+        $table = $_POST['table'] ?? '';
+        $pk_col = $_POST['pk_col'] ?? '';
+        $pk_val = $_POST['pk_val'] ?? '';
+        $col = $_POST['col'] ?? '';
+        $val = $_POST['val'] ?? null;
+        $is_null = !empty($_POST['is_null']);
+
+        if (!$db || !$table || !$pk_col || !$col) {
+            json_response(['error' => 'Missing required parameters'], 400);
+        }
+
+        $conn->select_db($db);
+
+        $escaped_table = esc_sql_id($table);
+        $escaped_col = esc_sql_id($col);
+        $escaped_pk = esc_sql_id($pk_col);
+
+        if ($is_null) {
+            $sql = "UPDATE `$escaped_table` SET `$escaped_col` = NULL WHERE `$escaped_pk` = ?";
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                json_response(['error' => $conn->error], 500);
+            }
+            $stmt->bind_param('s', $pk_val);
+        } else {
+            $sql = "UPDATE `$escaped_table` SET `$escaped_col` = ? WHERE `$escaped_pk` = ?";
+            $stmt = $conn->prepare($sql);
+            if (!$stmt) {
+                json_response(['error' => $conn->error], 500);
+            }
+            $stmt->bind_param('ss', $val, $pk_val);
+        }
+
+        if ($stmt->execute()) {
+            json_response(['success' => true, 'affected_rows' => $stmt->affected_rows]);
+        } else {
+            json_response(['error' => $stmt->error], 500);
+        }
+        break;
+
     default:
         json_response(['error' => 'Unknown action'], 400);
 }

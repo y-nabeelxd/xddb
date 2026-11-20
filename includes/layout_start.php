@@ -21,9 +21,9 @@ $accent_color = $_COOKIE['xddb_accent_color'] ?? '';
   </script>
   <link rel="stylesheet" href="assets/css/theme.css?v=<?= XDDB_VERSION ?>">
   <meta name="csrf-token" content="<?= get_csrf_token() ?>">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/monokai.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+  <link rel="stylesheet" href="assets/css/codemirror/codemirror.min.css">
+  <link rel="stylesheet" href="assets/css/codemirror/monokai.min.css">
+  <link rel="stylesheet" href="assets/css/codemirror/show-hint.min.css">
   <?php if ($accent_color): ?>
   <style>:root { --accent: <?= esc($accent_color) ?>; }</style>
   <?php endif; ?>
