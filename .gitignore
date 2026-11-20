@@ -6,3 +6,6 @@ sync.ps1
 test_php.php
 trest.php
 recovery.ps1
+*.zip
+xddb.zip
+dist/

@@ -1,8 +1,25 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    session_start();
+}
 require_once __DIR__ . '/includes/functions.php';
 
 mysqli_report(MYSQLI_REPORT_OFF);
+
+function json_response($data, $status = 200) {
+    http_response_code($status);
+    header('Content-Type: application/json');
+    echo json_encode($data);
+    exit;
+}
 
 if (!isset($_SESSION['user'])) {
     json_response(['error' => 'Not authenticated'], 401);
@@ -19,11 +36,11 @@ if ($conn->connect_error) {
 }
 $conn->set_charset('utf8mb4');
 
-function json_response($data, $status = 200) {
-    http_response_code($status);
-    header('Content-Type: application/json');
-    echo json_encode($data);
-    exit;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    if (!verify_csrf_token($token)) {
+        json_response(['error' => 'CSRF verification failed'], 403);
+    }
 }
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';

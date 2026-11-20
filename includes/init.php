@@ -1,7 +1,20 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    session_start();
+}
 
 require_once __DIR__ . '/functions.php';
+
+// Ensure CSRF token is active in session
+get_csrf_token();
 
 if (!isset($_SESSION['user']) && basename($_SERVER['PHP_SELF']) !== 'index.php') {
     redirect('index.php');

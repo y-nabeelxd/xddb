@@ -1,11 +1,32 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    session_start();
+}
 require_once __DIR__ . '/includes/functions.php';
 
 mysqli_report(MYSQLI_REPORT_OFF);
 
 if (!isset($_SESSION['user'])) {
     redirect('index.php');
+}
+
+$action = $_POST['action'] ?? $_GET['action'] ?? '';
+
+// CSRF validation for state-modifying requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    if (!verify_csrf_token($token)) {
+        flash_message('error', 'Security check failed (CSRF token invalid or expired). Please try again.');
+        redirect('dashboard.php');
+    }
 }
 
 $host = $_SESSION['host'];
@@ -20,7 +41,6 @@ if ($conn->connect_error) {
 }
 $conn->set_charset('utf8mb4');
 
-$action = $_POST['action'] ?? $_GET['action'] ?? '';
 $db = $_POST['db'] ?? '';
 $table = $_POST['table'] ?? '';
 $redirect_params = [];

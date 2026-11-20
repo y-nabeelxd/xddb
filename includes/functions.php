@@ -1,7 +1,29 @@
 <?php
 
 if (!defined('XDDB_VERSION')) {
-    define('XDDB_VERSION', '1.2.6');
+    define('XDDB_VERSION', '1.3.0');
+}
+
+function esc_sql_id($identifier) {
+    return '`' . str_replace('`', '``', (string)$identifier) . '`';
+}
+
+function get_csrf_token() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function verify_csrf_token($token) {
+    if (empty($_SESSION['csrf_token']) || empty($token)) {
+        return false;
+    }
+    return hash_equals($_SESSION['csrf_token'], (string)$token);
+}
+
+function csrf_field() {
+    return '<input type="hidden" name="csrf_token" value="' . esc(get_csrf_token()) . '">';
 }
 
 function check_for_updates() {
@@ -472,7 +494,10 @@ function get_flash() {
     return null;
 }
 
-function render_sidebar_db_group($dbitem, $tables, $selected_db, $selected_table, $icon = '📁', $removable = false, $active_tab = '') {
+function render_sidebar_db_group($dbitem, $tables, $selected_db, $selected_table, $icon = null, $removable = false, $active_tab = '') {
+    if ($icon === null) {
+        $icon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.75;"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>';
+    }
     $is_active = $selected_db === $dbitem;
     $is_expanded = $is_active;
     $table_count = count($tables);
@@ -488,6 +513,7 @@ function render_sidebar_db_group($dbitem, $tables, $selected_db, $selected_table
     $html .= '</a>';
     if ($removable) {
         $html .= '<form method="POST" action="actions.php" class="sidebar-remove-form">';
+        $html .= csrf_field();
         $html .= '<input type="hidden" name="action" value="remove_recent">';
         $html .= '<input type="hidden" name="recent_db" value="' . esc($dbitem) . '">';
         if ($selected_db) {
@@ -499,20 +525,20 @@ function render_sidebar_db_group($dbitem, $tables, $selected_db, $selected_table
         if ($active_tab) {
             $html .= '<input type="hidden" name="tab" value="' . esc($active_tab) . '">';
         }
-        $html .= '<button type="submit" class="sidebar-remove-recent" title="Remove from recent" aria-label="Remove from recent">×</button>';
+        $html .= '<button type="submit" class="sidebar-remove-recent" title="Remove from recent" aria-label="Remove from recent"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>';
         $html .= '</form>';
     }
     if ($table_count) {
         $html .= '<div class="sidebar-scroll-btns">';
-        $html .= '<button type="button" class="sidebar-scroll-btn sidebar-scroll-up" title="Scroll up">▲</button>';
-        $html .= '<button type="button" class="sidebar-scroll-btn sidebar-scroll-down" title="Scroll down">▼</button>';
+        $html .= '<button type="button" class="sidebar-scroll-btn sidebar-scroll-up" title="Scroll up"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg></button>';
+        $html .= '<button type="button" class="sidebar-scroll-btn sidebar-scroll-down" title="Scroll down"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>';
         $html .= '</div>';
     }
     $html .= '</div>';
     $html .= '<div class="sidebar-table-list' . ($is_expanded ? '' : ' collapsed') . '">';
     foreach ($tables as $titem) {
         $html .= '<a href="' . esc(base_url(['db' => $dbitem, 'table' => $titem, 'tab' => 'browse'])) . '" class="sidebar-item nested' . ($selected_table === $titem && $is_active ? ' active' : '') . '" data-name="' . esc($titem) . '">';
-        $html .= '<span class="icon">📋</span>' . esc($titem) . '</a>';
+        $html .= '<span class="icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.75;"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M3 15h18M9 9v12"/></svg></span>' . esc($titem) . '</a>';
     }
     $html .= '</div></div>';
     return $html;
