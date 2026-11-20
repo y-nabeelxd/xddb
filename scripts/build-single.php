@@ -6,7 +6,7 @@
  * into a single, self-contained distribution file: dist/xddb.php
  */
 
-$root = __DIR__;
+$root = dirname(__DIR__);
 $distDir = $root . '/dist';
 if (!is_dir($distDir)) {
     mkdir($distDir, 0755, true);
