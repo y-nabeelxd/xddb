@@ -35,7 +35,7 @@
         <h2 style="font-size:15px; font-weight:600; margin:0; display:inline-flex; align-items:center; gap:8px;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
           Query History & Audit Log
-          <span id="historyModalBadge" style="background:var(--accent); color:#fff; font-size:11px; padding:2px 7px; border-radius:10px;">0</span>
+          <span id="historyModalBadge" class="badge" style="background:var(--bg-tertiary); color:var(--text-muted); border:1px solid var(--border-color); font-size:11px; font-weight:500; padding:2px 7px; border-radius:10px;">0</span>
         </h2>
         <div style="display:flex; align-items:center; gap:8px;">
           <button type="button" class="btn btn-secondary btn-sm" id="historyModalRefreshBtn" title="Refresh history" style="padding:4px 8px; font-size:11px;">

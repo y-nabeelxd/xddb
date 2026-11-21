@@ -1,7 +1,7 @@
 <?php
 
 if (!defined('XDDB_VERSION')) {
-    define('XDDB_VERSION', '1.3.8');
+    define('XDDB_VERSION', '1.3.9');
 }
 
 function esc_sql_id($identifier) {
@@ -221,6 +221,7 @@ function add_query_history($sql, $duration = null, $meta = []) {
     if (!isset($_SESSION['query_history'])) {
         $_SESSION['query_history'] = [];
     }
+    $_SESSION['history_has_unread'] = true;
 
     $trimmed = trim((string)$sql);
     $type = $meta['type'] ?? 'SQL';
@@ -597,7 +598,6 @@ function render_sidebar_db_group($dbitem, $tables, $selected_db, $selected_table
 function nav_tabs($level, $db, $table, $active) {
     $tabs = [];
     if ($level === 'server') {
-        $hist_cnt = count($_SESSION['query_history'] ?? []);
         $tabs = [
             'databases' => 'Databases',
             'sql' => 'SQL',
@@ -606,7 +606,7 @@ function nav_tabs($level, $db, $table, $active) {
             'users' => 'User accounts',
             'export' => 'Export',
             'import' => 'Import',
-            'history' => 'Audit & History' . ($hist_cnt > 0 ? " ($hist_cnt)" : '')
+            'history' => 'Audit & History'
         ];
     } elseif ($level === 'database') {
         $tabs = [
@@ -641,7 +641,8 @@ function nav_tabs($level, $db, $table, $active) {
         if ($db) $params['db'] = $db;
         if ($table) $params['table'] = $table;
         $class = $active === $key ? 'tab-link active' : 'tab-link';
-        $html .= '<a href="' . esc(base_url($params)) . '" class="' . $class . '">' . esc($label) . '</a>';
+        $extra_dot = ($key === 'history' && !empty($_SESSION['history_has_unread']) && $active !== 'history') ? ' <span class="history-dot" id="tabHistoryDot"></span>' : '';
+        $html .= '<a href="' . esc(base_url($params)) . '" class="' . $class . '">' . esc($label) . $extra_dot . '</a>';
     }
     $html .= '</nav>';
     return $html;

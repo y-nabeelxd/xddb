@@ -228,6 +228,7 @@ switch ($action) {
         break;
 
     case 'get_history':
+        $_SESSION['history_has_unread'] = false;
         json_response([
             'success' => true,
             'history' => $_SESSION['query_history'] ?? []
@@ -236,6 +237,7 @@ switch ($action) {
 
     case 'clear_history':
         $_SESSION['query_history'] = [];
+        $_SESSION['history_has_unread'] = false;
         json_response(['success' => true]);
         break;
 

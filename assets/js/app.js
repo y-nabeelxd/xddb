@@ -288,12 +288,24 @@
   const closeHistoryModalBtn = document.getElementById('closeHistoryModalBtn');
   const historyModalList = document.getElementById('historyModalList');
   const historyModalBadge = document.getElementById('historyModalBadge');
-  const globalHistoryBadge = document.getElementById('globalHistoryBadge');
+  const globalHistoryDot = document.getElementById('globalHistoryDot');
+  const tabHistoryDot = document.getElementById('tabHistoryDot');
   const historyModalRefreshBtn = document.getElementById('historyModalRefreshBtn');
   const historyModalExportBtn = document.getElementById('historyModalExportBtn');
   const historyModalClearBtn = document.getElementById('historyModalClearBtn');
   const modalAuditSearch = document.getElementById('modalAuditSearch');
   const modalAuditPills = document.querySelectorAll('#modalAuditPills .audit-pill');
+
+  function clearHistoryDots() {
+    if (globalHistoryDot) globalHistoryDot.style.display = 'none';
+    if (tabHistoryDot) tabHistoryDot.style.display = 'none';
+  }
+
+  // Clear dots if user is currently visiting the history tab
+  const currentTabParam = new URLSearchParams(window.location.search).get('tab');
+  if (currentTabParam === 'history') {
+    clearHistoryDots();
+  }
 
   let cachedHistory = [];
   let modalFilter = 'all';
@@ -334,8 +346,9 @@
       return true;
     });
 
-    if (historyModalBadge) historyModalBadge.textContent = cachedHistory.length;
-    if (globalHistoryBadge) globalHistoryBadge.textContent = cachedHistory.length;
+    if (historyModalBadge) {
+      historyModalBadge.textContent = cachedHistory.length + (cachedHistory.length === 1 ? ' Record' : ' Records');
+    }
 
     if (filtered.length === 0) {
       historyModalList.innerHTML = `
@@ -494,6 +507,7 @@
 
   if (historyModalBtn && historyModal) {
     historyModalBtn.addEventListener('click', function() {
+      clearHistoryDots();
       historyModal.removeAttribute('hidden');
       document.body.classList.add('guide-open');
       fetchHistory();
@@ -759,11 +773,10 @@
               cell.classList.add('cell-saved-flash');
               setTimeout(() => cell.classList.remove('cell-saved-flash'), 600);
 
-              const gBadge = document.getElementById('globalHistoryBadge');
-              if (gBadge) {
-                const count = parseInt(gBadge.textContent || '0', 10);
-                gBadge.textContent = count + 1;
-              }
+              const gDot = document.getElementById('globalHistoryDot');
+              if (gDot) gDot.style.display = 'inline-block';
+              const tDot = document.getElementById('tabHistoryDot');
+              if (tDot) tDot.style.display = 'inline-block';
             } else {
               alert('Error updating cell: ' + (data.error || 'Unknown error'));
               cancelEdit();

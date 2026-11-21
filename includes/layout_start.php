@@ -63,7 +63,7 @@ $accent_color = $_COOKIE['xddb_accent_color'] ?? '';
       <button type="button" class="btn btn-secondary btn-sm" id="openHistoryModalBtn" title="Audit & Query History" style="display:inline-flex;align-items:center;gap:6px;font-weight:500;">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
         History
-        <span id="globalHistoryBadge" style="background:var(--accent);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;line-height:1;"><?= count($_SESSION['query_history'] ?? []) ?></span>
+        <span class="history-dot" id="globalHistoryDot" style="<?= empty($_SESSION['history_has_unread']) ? 'display:none;' : '' ?>"></span>
       </button>
       <button type="button" class="btn btn-secondary btn-sm" id="openSnippetsBtn" title="Saved SQL Snippets" style="display:inline-flex;align-items:center;gap:6px;font-weight:500;">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
