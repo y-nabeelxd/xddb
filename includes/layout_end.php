@@ -34,6 +34,7 @@
 <script src="assets/js/codemirror/sql.min.js"></script>
 <script src="assets/js/codemirror/show-hint.min.js"></script>
 <script src="assets/js/codemirror/sql-hint.min.js"></script>
+<script src="assets/js/chart.min.js?v=<?= XDDB_VERSION ?>"></script>
 <script src="assets/js/app.js?v=<?= XDDB_VERSION ?>"></script>
 <script src="assets/js/sql-editor.js?v=<?= XDDB_VERSION ?>"></script>
 </body>

@@ -159,13 +159,13 @@ switch ($active_tab) {
                 <a href="print.php?db=<?= esc($selected_db) ?>&table=<?= esc($selected_table) ?>" target="_blank" class="btn btn-secondary btn-sm" style="display: flex; align-items: center; gap: 6px;">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg> Print
                 </a>
-                <button type="button" onclick="copyTableToClipboard()" class="btn btn-secondary btn-sm" style="display: flex; align-items: center; gap: 6px;">
+                <button type="button" id="btnCopyTable" onclick="copyTableToClipboard(this)" class="btn btn-secondary btn-sm" style="display: flex; align-items: center; gap: 6px;">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy to clipboard
                 </button>
                 <a href="<?= esc(base_url(['db' => $selected_db, 'table' => $selected_table, 'tab' => 'export'])) ?>" class="btn btn-secondary btn-sm" style="display: flex; align-items: center; gap: 6px;">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Export
                 </a>
-                <button type="button" class="btn btn-secondary btn-sm" style="display: flex; align-items: center; gap: 6px;" onclick="alert('Chart view relies on Chart.js and is mocked for now.')">
+                <button type="button" id="btnDisplayChart" class="btn btn-secondary btn-sm" style="display: flex; align-items: center; gap: 6px;" onclick="openChartModal()">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg> Display chart
                 </button>
                 <form method="POST" action="actions.php" class="inline-form">
@@ -176,6 +176,68 @@ switch ($active_tab) {
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> Create view
                     </button>
                 </form>
+              </div>
+
+              <!-- Chart Visualization Modal -->
+              <div class="guide-overlay" id="chartModal" hidden>
+                <div class="guide-modal" style="max-width: 960px; width: 95%;">
+                  <div class="guide-modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid var(--border);">
+                    <h2 style="font-size: 15px; font-weight: 600; margin: 0; display: inline-flex; align-items: center; gap: 8px;">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                      Data Chart — <?= esc($selected_table) ?>
+                    </h2>
+                    <button type="button" class="guide-modal-close" id="closeChartModal" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-muted);">&times;</button>
+                  </div>
+                  <div class="guide-modal-body" style="padding: 20px;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; align-items: flex-end; background: var(--bg-hover); padding: 14px; border-radius: 8px; border: 1px solid var(--border);">
+                      <div style="flex: 1; min-width: 140px;">
+                        <label style="font-size: 12px; font-weight: 500; color: var(--text-muted); display: block; margin-bottom: 4px;">Chart Type</label>
+                        <select id="chartType" class="form-select" style="width: 100%; font-size: 13px;">
+                          <option value="bar">Bar (Vertical)</option>
+                          <option value="horizontalBar">Bar (Horizontal)</option>
+                          <option value="line">Line</option>
+                          <option value="pie">Pie</option>
+                          <option value="doughnut">Doughnut</option>
+                          <option value="polarArea">Polar Area</option>
+                        </select>
+                      </div>
+                      <div style="flex: 1; min-width: 140px;">
+                        <label style="font-size: 12px; font-weight: 500; color: var(--text-muted); display: block; margin-bottom: 4px;">Label (X-Axis)</label>
+                        <select id="chartLabelCol" class="form-select" style="width: 100%; font-size: 13px;">
+                          <?php foreach ($col_names as $col): ?>
+                            <option value="<?= esc($col) ?>"><?= esc($col) ?></option>
+                          <?php endforeach; ?>
+                        </select>
+                      </div>
+                      <div style="flex: 1; min-width: 140px;">
+                        <label style="font-size: 12px; font-weight: 500; color: var(--text-muted); display: block; margin-bottom: 4px;">Value (Y-Axis)</label>
+                        <select id="chartValueCol" class="form-select" style="width: 100%; font-size: 13px;">
+                          <option value="__count__">[Count of rows / records]</option>
+                          <?php foreach ($col_names as $col): ?>
+                            <option value="<?= esc($col) ?>"><?= esc($col) ?></option>
+                          <?php endforeach; ?>
+                        </select>
+                      </div>
+                      <div style="flex: 1; min-width: 130px;">
+                        <label style="font-size: 12px; font-weight: 500; color: var(--text-muted); display: block; margin-bottom: 4px;">Aggregation</label>
+                        <select id="chartAgg" class="form-select" style="width: 100%; font-size: 13px;">
+                          <option value="auto">Auto (Smart)</option>
+                          <option value="sum">Sum</option>
+                          <option value="avg">Average</option>
+                          <option value="raw">None (Row-by-Row)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <button type="button" id="btnExportChartPng" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 6px; height: 35px;">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Export PNG
+                        </button>
+                      </div>
+                    </div>
+                    <div style="position: relative; height: 420px; width: 100%; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border); padding: 16px; box-sizing: border-box;">
+                      <canvas id="xddbChartCanvas"></canvas>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <?php if ($pk): foreach ($rows as $row): ?>
@@ -219,20 +281,290 @@ switch ($active_tab) {
                   });
               });
 
-              function copyTableToClipboard() {
+              function copyTableToClipboard(btn) {
                   let table = document.getElementById('tableBrowse');
-                  let text = '';
+                  if (!table) return;
+                  let lines = [];
                   for (let row of table.rows) {
                       let rowText = [];
                       for (let i = 0; i < row.cells.length; i++) {
                           if (i === 0 && row.cells[0].querySelector('input[type=checkbox]')) continue;
                           if (i === row.cells.length - 1) continue;
-                          rowText.push(row.cells[i].innerText);
+                          let val = (row.cells[i].innerText || '').trim().replace(/[\r\n\t]+/g, ' ');
+                          rowText.push(val);
                       }
-                      text += rowText.join('\\t') + '\\n';
+                      if (rowText.length > 0) {
+                          lines.push(rowText.join("\t"));
+                      }
                   }
-                  navigator.clipboard.writeText(text).then(() => alert('Table copied to clipboard!'));
+                  let text = lines.join("\n") + "\n";
+                  
+                  function onSuccess() {
+                      if (btn) {
+                          let origHtml = btn.innerHTML;
+                          btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> <span style="color:#10b981;font-weight:600;">Copied!</span>';
+                          setTimeout(() => { btn.innerHTML = origHtml; }, 2500);
+                      }
+                      let toast = document.createElement('div');
+                      toast.className = 'alert alert-success';
+                      toast.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:99999;box-shadow:0 8px 24px rgba(0,0,0,0.3);';
+                      toast.innerHTML = '<strong>✓ Copied!</strong> Table data copied to clipboard in tab-separated format.';
+                      document.body.appendChild(toast);
+                      setTimeout(() => { if (toast.parentNode) toast.remove(); }, 3000);
+                  }
+
+                  if (navigator.clipboard && navigator.clipboard.writeText) {
+                      navigator.clipboard.writeText(text).then(onSuccess).catch(() => fallbackCopy(text, onSuccess));
+                  } else {
+                      fallbackCopy(text, onSuccess);
+                  }
               }
+
+              function fallbackCopy(text, onSuccess) {
+                  let ta = document.createElement('textarea');
+                  ta.value = text;
+                  ta.style.position = 'fixed';
+                  ta.style.left = '-9999px';
+                  ta.style.top = '0';
+                  document.body.appendChild(ta);
+                  ta.focus();
+                  ta.select();
+                  try {
+                      document.execCommand('copy');
+                      if (onSuccess) onSuccess();
+                  } catch (e) {
+                      alert('Could not copy to clipboard: ' + e);
+                  }
+                  document.body.removeChild(ta);
+              }
+
+              // Chart Visualization Implementation
+              const rawChartRows = <?= json_encode($rows) ?>;
+              const chartColumns = <?= json_encode($col_names) ?>;
+              let chartInstance = null;
+
+              function openChartModal() {
+                  if (typeof Chart === 'undefined') {
+                      alert('Chart.js library is not loaded. Please ensure assets/js/chart.min.js is present.');
+                      return;
+                  }
+                  const modal = document.getElementById('chartModal');
+                  if (!modal) return;
+                  modal.removeAttribute('hidden');
+                  document.body.classList.add('guide-open');
+                  initChartDefaults();
+                  updateChart();
+              }
+
+              function closeChartModal() {
+                  const modal = document.getElementById('chartModal');
+                  if (!modal) return;
+                  modal.setAttribute('hidden', '');
+                  document.body.classList.remove('guide-open');
+              }
+
+              function initChartDefaults() {
+                  if (!rawChartRows || rawChartRows.length === 0) return;
+                  const numericCols = [];
+                  const textCols = [];
+                  chartColumns.forEach(col => {
+                      let isNum = false;
+                      let countChecked = 0;
+                      for (let r of rawChartRows) {
+                          let val = r[col];
+                          if (val !== null && val !== undefined && String(val).trim() !== '') {
+                              countChecked++;
+                              if (!isNaN(Number(val))) {
+                                  isNum = true;
+                              } else {
+                                  isNum = false;
+                                  break;
+                              }
+                          }
+                      }
+                      if (isNum && countChecked > 0) {
+                          numericCols.push(col);
+                      } else {
+                          textCols.push(col);
+                      }
+                  });
+
+                  const labelSelect = document.getElementById('chartLabelCol');
+                  const valueSelect = document.getElementById('chartValueCol');
+
+                  let bestLabel = textCols.find(c => /name|title|course|job|role|type|category|status|dept|city|country|label/i.test(c))
+                               || textCols[0]
+                               || chartColumns[0];
+
+                  let bestValue = numericCols.find(c => !/id$/i.test(c))
+                               || numericCols[0]
+                               || '__count__';
+
+                  if (labelSelect && !labelSelect.dataset.userChanged) {
+                      labelSelect.value = bestLabel;
+                  }
+                  if (valueSelect && !valueSelect.dataset.userChanged) {
+                      valueSelect.value = bestValue;
+                  }
+              }
+
+              function updateChart() {
+                  if (typeof Chart === 'undefined') return;
+                  const canvas = document.getElementById('xddbChartCanvas');
+                  if (!canvas) return;
+
+                  const chartType = document.getElementById('chartType').value;
+                  const labelCol = document.getElementById('chartLabelCol').value;
+                  const valueCol = document.getElementById('chartValueCol').value;
+                  const aggMode = document.getElementById('chartAgg').value;
+
+                  let labels = [];
+                  let data = [];
+                  let datasetLabel = valueCol;
+
+                  if (valueCol === '__count__') {
+                      datasetLabel = 'Count of ' + labelCol;
+                      const counts = {};
+                      rawChartRows.forEach(r => {
+                          let k = (r[labelCol] !== null && r[labelCol] !== undefined && String(r[labelCol]).trim() !== '') ? String(r[labelCol]) : 'NULL';
+                          counts[k] = (counts[k] || 0) + 1;
+                      });
+                      labels = Object.keys(counts);
+                      data = Object.values(counts);
+                  } else {
+                      const shouldGroup = (aggMode === 'sum' || aggMode === 'avg') || (aggMode === 'auto' && rawChartRows.length > 25);
+                      if (shouldGroup) {
+                          const sums = {};
+                          const counts = {};
+                          rawChartRows.forEach(r => {
+                              let k = (r[labelCol] !== null && r[labelCol] !== undefined && String(r[labelCol]).trim() !== '') ? String(r[labelCol]) : 'NULL';
+                              let num = parseFloat(r[valueCol]);
+                              if (!isNaN(num)) {
+                                  sums[k] = (sums[k] || 0) + num;
+                                  counts[k] = (counts[k] || 0) + 1;
+                              }
+                          });
+                          labels = Object.keys(sums);
+                          if (aggMode === 'avg') {
+                              datasetLabel = 'Average of ' + valueCol;
+                              data = labels.map(k => +(sums[k] / (counts[k] || 1)).toFixed(2));
+                          } else {
+                              datasetLabel = 'Total of ' + valueCol;
+                              data = labels.map(k => +sums[k].toFixed(2));
+                          }
+                      } else {
+                          datasetLabel = valueCol;
+                          labels = rawChartRows.map((r, i) => {
+                              return (r[labelCol] !== null && r[labelCol] !== undefined && String(r[labelCol]).trim() !== '') ? String(r[labelCol]) : `Row #${i+1}`;
+                          });
+                          data = rawChartRows.map(r => {
+                              let num = parseFloat(r[valueCol]);
+                              return isNaN(num) ? 0 : num;
+                          });
+                      }
+                  }
+
+                  const palette = [
+                      '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+                      '#ec4899', '#06b6d4', '#14b8a6', '#f97316', '#6366f1',
+                      '#e11d48', '#84cc16', '#a855f7', '#0ea5e9', '#eab308'
+                  ];
+                  const colors = labels.map((_, i) => palette[i % palette.length]);
+
+                  if (chartInstance) {
+                      chartInstance.destroy();
+                  }
+
+                  const actualType = chartType === 'horizontalBar' ? 'bar' : chartType;
+                  const isHorizontal = chartType === 'horizontalBar';
+                  const isCartesian = ['bar', 'line'].includes(actualType);
+                  const isLine = actualType === 'line';
+
+                  const dataset = {
+                      label: datasetLabel,
+                      data: data,
+                      backgroundColor: isLine ? 'rgba(59, 130, 246, 0.18)' : (['pie', 'doughnut', 'polarArea'].includes(actualType) ? colors : colors),
+                      borderColor: isLine ? '#3b82f6' : (['pie', 'doughnut', 'polarArea'].includes(actualType) ? 'var(--bg-card)' : colors),
+                      borderWidth: isLine ? 2 : 1,
+                      fill: isLine,
+                      tension: 0.3
+                  };
+
+                  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+                  const textColor = isDark ? '#94a3b8' : '#475569';
+                  const gridColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
+
+                  const options = {
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      indexAxis: isHorizontal ? 'y' : 'x',
+                      animation: { duration: 350 },
+                      plugins: {
+                          legend: {
+                              display: ['pie', 'doughnut', 'polarArea'].includes(actualType) || isLine,
+                              labels: { color: textColor, boxWidth: 12, padding: 12 }
+                          },
+                          tooltip: {
+                              backgroundColor: isDark ? '#161b22' : '#ffffff',
+                              titleColor: isDark ? '#f0f6fc' : '#0f172a',
+                              bodyColor: isDark ? '#8b949e' : '#334155',
+                              borderColor: isDark ? '#30363d' : '#e2e8f0',
+                              borderWidth: 1,
+                              padding: 10,
+                              cornerRadius: 6
+                          }
+                      }
+                  };
+
+                  if (isCartesian) {
+                      options.scales = {
+                          x: {
+                              ticks: { color: textColor },
+                              grid: { color: gridColor }
+                          },
+                          y: {
+                              ticks: { color: textColor },
+                              grid: { color: gridColor },
+                              beginAtZero: true
+                          }
+                      };
+                  }
+
+                  chartInstance = new Chart(canvas, {
+                      type: actualType,
+                      data: {
+                          labels: labels,
+                          datasets: [dataset]
+                      },
+                      options: options
+                  });
+              }
+
+              document.addEventListener('DOMContentLoaded', function() {
+                  const chartModal = document.getElementById('chartModal');
+                  if (chartModal) {
+                      document.getElementById('closeChartModal')?.addEventListener('click', closeChartModal);
+                      chartModal.addEventListener('click', (e) => {
+                          if (e.target === chartModal) closeChartModal();
+                      });
+                      document.getElementById('btnExportChartPng')?.addEventListener('click', function() {
+                          if (!chartInstance) return;
+                          const a = document.createElement('a');
+                          a.href = chartInstance.toBase64Image();
+                          a.download = `xddb-chart-<?= esc($selected_table) ?>.png`;
+                          a.click();
+                      });
+                      ['chartType', 'chartLabelCol', 'chartValueCol', 'chartAgg'].forEach(id => {
+                          const el = document.getElementById(id);
+                          if (el) {
+                              el.addEventListener('change', () => {
+                                  el.dataset.userChanged = 'true';
+                                  updateChart();
+                              });
+                          }
+                      });
+                  }
+              });
               </script>
 
               <div class="pagination" style="padding:12px 16px; border-top: 1px solid var(--border);">
