@@ -244,21 +244,28 @@ function build_where_from_pk($conn, $db, $table, $pk_values) {
     return "`$pk` = '$val'";
 }
 
-function export_sql($conn, $db, $tables = null) {
+function export_sql($conn, $db, $tables = null, $custom_query = null) {
     $conn->select_db($db);
     if ($tables === null) {
         $tables = get_tables($conn, $db);
     }
     $output = "-- SQL Export\n-- Database: $db\n-- Date: " . date('Y-m-d H:i:s') . "\n\n";
-    $output .= "CREATE DATABASE IF NOT EXISTS `$db`;\nUSE `$db`;\n\n";
+    if ($custom_query) {
+        $output .= "-- Exporting selected rows\n\n";
+    } else {
+        $output .= "CREATE DATABASE IF NOT EXISTS `$db`;\nUSE `$db`;\n\n";
+    }
     foreach ($tables as $table) {
-        $create = $conn->query("SHOW CREATE TABLE `$table`");
-        if ($create) {
-            $row = $create->fetch_assoc();
-            $output .= "DROP TABLE IF EXISTS `$table`;\n";
-            $output .= $row['Create Table'] . ";\n\n";
+        if (!$custom_query) {
+            $create = $conn->query("SHOW CREATE TABLE `$table`");
+            if ($create) {
+                $row = $create->fetch_assoc();
+                $output .= "DROP TABLE IF EXISTS `$table`;\n";
+                $output .= $row['Create Table'] . ";\n\n";
+            }
         }
-        $data = $conn->query("SELECT * FROM `$table`");
+        $query_to_run = ($custom_query && count($tables) === 1) ? $custom_query : "SELECT * FROM `$table`";
+        $data = $conn->query($query_to_run);
         if ($data && $data->num_rows > 0) {
             $columns = [];
             while ($field = $data->fetch_field()) {
@@ -282,9 +289,10 @@ function export_sql($conn, $db, $tables = null) {
     return $output;
 }
 
-function export_csv($conn, $db, $table) {
+function export_csv($conn, $db, $table, $custom_query = null) {
     $conn->select_db($db);
-    $result = $conn->query("SELECT * FROM `$table`");
+    $query = $custom_query ?: "SELECT * FROM `$table`";
+    $result = $conn->query($query);
     $output = fopen('php://temp', 'r+');
     if ($result && $result->num_rows > 0) {
         $headers = [];
@@ -303,9 +311,10 @@ function export_csv($conn, $db, $table) {
     return $csv;
 }
 
-function export_json($conn, $db, $table) {
+function export_json($conn, $db, $table, $custom_query = null) {
     $conn->select_db($db);
-    $result = $conn->query("SELECT * FROM `$table`");
+    $query = $custom_query ?: "SELECT * FROM `$table`";
+    $result = $conn->query($query);
     $rows = [];
     if ($result) {
         while ($row = $result->fetch_assoc()) {
@@ -315,9 +324,10 @@ function export_json($conn, $db, $table) {
     return json_encode($rows, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 }
 
-function export_xml($conn, $db, $table) {
+function export_xml($conn, $db, $table, $custom_query = null) {
     $conn->select_db($db);
-    $result = $conn->query("SELECT * FROM `$table`");
+    $query = $custom_query ?: "SELECT * FROM `$table`";
+    $result = $conn->query($query);
     $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
     $xml .= "<database name=\"" . esc($db) . "\">\n";
     $xml .= "  <table name=\"" . esc($table) . "\">\n";

@@ -742,16 +742,115 @@ switch ($action) {
                     return "'" . $conn->real_escape_string($val) . "'";
                 }, $selected_rows);
                 $_SESSION['export_query'] = "SELECT * FROM `$table` WHERE `" . $conn->real_escape_string($pk_col) . "` IN (" . implode(',', $escaped_rows) . ")";
+                $_SESSION['export_selected_count'] = count($selected_rows);
+                $_SESSION['export_table'] = $table;
                 $redirect_params['tab'] = 'export';
-            } elseif ($bulk_action === 'copy' || $bulk_action === 'edit') {
-                flash_message('info', 'Bulk copy/edit is not fully implemented yet.');
+                $redirect_params['selected'] = '1';
+            } elseif ($bulk_action === 'copy') {
+                $escaped_rows = array_map(function($val) use ($conn) {
+                    return "'" . $conn->real_escape_string($val) . "'";
+                }, $selected_rows);
+
+                $pk_is_ai = false;
+                $col_check = $conn->query("SHOW COLUMNS FROM `$table` LIKE '" . $conn->real_escape_string($pk_col) . "'");
+                if ($col_check && $c_info = $col_check->fetch_assoc()) {
+                    $pk_is_ai = stripos($c_info['Extra'] ?? '', 'auto_increment') !== false;
+                }
+
+                $res = $conn->query("SELECT * FROM `$table` WHERE `" . $conn->real_escape_string($pk_col) . "` IN (" . implode(',', $escaped_rows) . ")");
+                $copied_count = 0;
+                $error_msg = null;
+                if ($res) {
+                    while ($row = $res->fetch_assoc()) {
+                        if ($pk_is_ai) {
+                            unset($row[$pk_col]);
+                        } else {
+                            $row[$pk_col] = is_numeric($row[$pk_col]) ? ($row[$pk_col] + 1000) : ($row[$pk_col] . '_copy');
+                        }
+                        $cols = [];
+                        $vals = [];
+                        foreach ($row as $k => $v) {
+                            $cols[] = '`' . str_replace('`', '``', $k) . '`';
+                            $vals[] = $v === null ? 'NULL' : "'" . $conn->real_escape_string($v) . "'";
+                        }
+                        $sql = "INSERT INTO `" . str_replace('`', '``', $table) . "` (" . implode(', ', $cols) . ") VALUES (" . implode(', ', $vals) . ")";
+                        if ($conn->query($sql)) {
+                            $copied_count++;
+                            add_query_history($sql);
+                        } else {
+                            $error_msg = $conn->error;
+                        }
+                    }
+                }
+                if ($copied_count > 0) {
+                    flash_message('success', "$copied_count row(s) copied successfully.");
+                } else {
+                    flash_message('error', 'Failed to copy rows' . ($error_msg ? ': ' . $error_msg : '.'));
+                }
+                $redirect_params['tab'] = 'browse';
+            } elseif ($bulk_action === 'edit') {
+                $_SESSION['bulk_edit_pks'] = $selected_rows;
+                $_SESSION['bulk_edit_pk_col'] = $pk_col;
+                $_SESSION['bulk_edit_table'] = $table;
+                $redirect_params['tab'] = 'insert';
+                $redirect_params['bulk_edit'] = '1';
             }
         } else {
             flash_message('error', 'No action or rows selected.');
         }
-        if ($bulk_action !== 'export') {
+        if (!in_array($bulk_action, ['export', 'edit'], true)) {
             $redirect_params['tab'] = 'browse';
         }
+        break;
+
+    case 'bulk_update_rows':
+        $conn->select_db($db);
+        $pk_col = $_POST['pk_col'] ?? '';
+        $rows_data = $_POST['rows'] ?? [];
+        if (!$pk_col || empty($rows_data)) {
+            flash_message('error', 'No rows provided for bulk update.');
+            $redirect_params['tab'] = 'browse';
+            break;
+        }
+
+        $updated_count = 0;
+        $error_msg = null;
+
+        foreach ($rows_data as $pk_val => $row_info) {
+            $fields = $row_info['fields'] ?? [];
+            $nulls = $row_info['nulls'] ?? [];
+
+            $set_clauses = [];
+            foreach ($fields as $field_name => $field_val) {
+                if ($field_name === $pk_col) continue;
+
+                $escaped_field = '`' . str_replace('`', '``', $field_name) . '`';
+                if (!empty($nulls[$field_name])) {
+                    $set_clauses[] = "$escaped_field = NULL";
+                } else {
+                    $set_clauses[] = "$escaped_field = '" . $conn->real_escape_string($field_val) . "'";
+                }
+            }
+
+            if (!empty($set_clauses)) {
+                $sql = "UPDATE `" . str_replace('`', '``', $table) . "` SET " . implode(', ', $set_clauses) . " WHERE `" . str_replace('`', '``', $pk_col) . "` = '" . $conn->real_escape_string($pk_val) . "'";
+                if ($conn->query($sql)) {
+                    $updated_count++;
+                    add_query_history($sql);
+                } else {
+                    $error_msg = $conn->error;
+                }
+            }
+        }
+
+        unset($_SESSION['bulk_edit_pks'], $_SESSION['bulk_edit_pk_col'], $_SESSION['bulk_edit_table']);
+
+        if ($updated_count > 0) {
+            flash_message('success', "$updated_count row(s) updated successfully.");
+        } else {
+            flash_message('error', 'Failed to update rows' . ($error_msg ? ': ' . $error_msg : '.'));
+        }
+        $redirect_params['tab'] = 'browse';
         break;
 
     case 'create_view_from_table':

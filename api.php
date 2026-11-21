@@ -163,14 +163,14 @@ switch ($action) {
         $escaped_pk = esc_sql_id($pk_col);
 
         if ($is_null) {
-            $sql = "UPDATE `$escaped_table` SET `$escaped_col` = NULL WHERE `$escaped_pk` = ?";
+            $sql = "UPDATE $escaped_table SET $escaped_col = NULL WHERE $escaped_pk = ?";
             $stmt = $conn->prepare($sql);
             if (!$stmt) {
                 json_response(['error' => $conn->error], 500);
             }
             $stmt->bind_param('s', $pk_val);
         } else {
-            $sql = "UPDATE `$escaped_table` SET `$escaped_col` = ? WHERE `$escaped_pk` = ?";
+            $sql = "UPDATE $escaped_table SET $escaped_col = ? WHERE $escaped_pk = ?";
             $stmt = $conn->prepare($sql);
             if (!$stmt) {
                 json_response(['error' => $conn->error], 500);

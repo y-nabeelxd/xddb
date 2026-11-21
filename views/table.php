@@ -740,77 +740,166 @@ switch ($active_tab) {
         break;
 
     case 'insert':
-        $edit_row = null;
-        if ($edit_mode && $pk && $edit_pk_val) {
-            $res = $conn->query("SELECT * FROM `$selected_table` WHERE `" . $conn->real_escape_string($pk) . "` = '" . $conn->real_escape_string($edit_pk_val) . "'");
-            if ($res) $edit_row = $res->fetch_assoc();
-        }
-        $is_edit = $edit_row !== null;
-        ?>
-        <div class="panel">
-          <div class="panel-header"><?= $is_edit ? 'Edit Row' : 'Insert Row' ?> — <?= esc($selected_table) ?></div>
-          <div class="panel-body">
-            <?php if (!empty($is_view)): ?>
-              <div style="background:rgba(59,130,246,0.1);border-left:3px solid #3b82f6;padding:10px 14px;border-radius:4px;margin-bottom:16px;font-size:13px;color:var(--text);">
-                ℹ <strong>View Notice:</strong> This is a virtual table (View). Inserts are only allowed in MySQL if the view references a single base table without aggregate functions, DISTINCT, GROUP BY, or UNION.
+        $is_bulk_edit = !empty($_GET['bulk_edit']) && !empty($_SESSION['bulk_edit_pks']) && (($_SESSION['bulk_edit_table'] ?? '') === $selected_table);
+        if ($is_bulk_edit) {
+            $bulk_pks = $_SESSION['bulk_edit_pks'];
+            $escaped_pks = array_map(function($val) use ($conn) {
+                return "'" . $conn->real_escape_string($val) . "'";
+            }, $bulk_pks);
+            $bulk_res = $conn->query("SELECT * FROM `$selected_table` WHERE `" . $conn->real_escape_string($pk) . "` IN (" . implode(',', $escaped_pks) . ")");
+            $bulk_rows = [];
+            if ($bulk_res) {
+                while ($r = $bulk_res->fetch_assoc()) {
+                    $bulk_rows[] = $r;
+                }
+            }
+            ?>
+            <div class="panel">
+              <div class="panel-header" style="display:flex;align-items:center;justify-content:space-between;">
+                <div>Bulk Edit — <?= esc($selected_table) ?> <span style="font-size:12px;color:var(--text-muted);font-weight:normal;">(Editing <?= count($bulk_rows) ?> selected row<?= count($bulk_rows) === 1 ? '' : 's' ?>)</span></div>
+                <a href="<?= esc(base_url(['db' => $selected_db, 'table' => $selected_table, 'tab' => 'browse'])) ?>" class="btn btn-secondary btn-sm">Cancel</a>
               </div>
-            <?php endif; ?>
-            <form method="POST" action="actions.php">
-              <input type="hidden" name="action" value="<?= $is_edit ? 'update_row' : 'insert_row' ?>">
-              <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
-              <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
-              <?php if ($is_edit): ?>
-                <input type="hidden" name="pk_col" value="<?= esc($pk) ?>">
-                <input type="hidden" name="pk_val" value="<?= esc($edit_pk_val) ?>">
-              <?php endif; ?>
-              <div class="table-wrap"><table class="data-table">
-                <thead><tr><th>Column</th><th>Type</th><th>Null</th><th>Value</th></tr></thead>
-                <tbody>
-                  <?php foreach ($columns as $col):
-                    $field = $col['Field'];
-                    $is_pk = ($field === $pk);
-                    if ($is_edit && $is_pk && strpos($col['Extra'], 'auto_increment') !== false) continue;
-                    $val = $is_edit ? ($edit_row[$field] ?? '') : '';
-                  ?>
-                  <tr>
-                    <td><strong><?= esc($field) ?></strong></td>
-                    <td><?= esc($col['Type']) ?></td>
-                    <td><?= esc($col['Null']) ?></td>
-                    <td>
-                      <?php if (stripos($col['Type'], 'text') !== false): ?>
-                        <textarea name="fields[<?= esc($field) ?>]" class="form-textarea" rows="2"><?= esc($val) ?></textarea>
-                      <?php else: ?>
-                        <input type="text" name="fields[<?= esc($field) ?>]" class="form-input" value="<?= esc($val) ?>">
-                      <?php endif; ?>
-                      <?php if ($col['Null'] === 'YES'): ?>
-                        <label class="checkbox-label" style="margin-top:4px"><input type="checkbox" name="nulls[<?= esc($field) ?>]"> NULL</label>
-                      <?php endif; ?>
-                    </td>
-                  </tr>
+              <div class="panel-body">
+                <form method="POST" action="actions.php">
+                  <input type="hidden" name="action" value="bulk_update_rows">
+                  <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
+                  <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
+                  <input type="hidden" name="pk_col" value="<?= esc($pk) ?>">
+
+                  <?php foreach ($bulk_rows as $idx => $row): ?>
+                    <div style="background:var(--bg-hover);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:20px;">
+                      <div style="font-weight:600;font-size:13px;margin-bottom:12px;display:flex;align-items:center;gap:8px;color:var(--text);">
+                        <span style="background:var(--accent);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;"><?= $idx + 1 ?></span>
+                        Row where <code><?= esc($pk) ?></code> = <strong><?= esc($row[$pk]) ?></strong>
+                      </div>
+                      <div class="table-wrap" style="background:var(--bg-card);border-radius:6px;">
+                        <table class="data-table">
+                          <thead><tr><th style="width:20%">Column</th><th style="width:15%">Type</th><th style="width:10%">Null</th><th>Value</th></tr></thead>
+                          <tbody>
+                            <?php foreach ($columns as $col):
+                              $field = $col['Field'];
+                              $is_pk_field = ($field === $pk);
+                              $val = $row[$field] ?? '';
+                              $is_ai = ($is_pk_field && stripos($col['Extra'] ?? '', 'auto_increment') !== false);
+                            ?>
+                            <tr>
+                              <td><strong><?= esc($field) ?></strong></td>
+                              <td><code style="font-size:11px;"><?= esc($col['Type']) ?></code></td>
+                              <td>
+                                <?php if ($col['Null'] === 'YES'): ?>
+                                  <label class="checkbox-label" style="font-size:12px;"><input type="checkbox" name="rows[<?= esc($row[$pk]) ?>][nulls][<?= esc($field) ?>]" value="1" <?= $row[$field] === null ? 'checked' : '' ?>> NULL</label>
+                                <?php else: ?>
+                                  <span style="color:var(--text-muted);font-size:12px;">No</span>
+                                <?php endif; ?>
+                              </td>
+                              <td>
+                                <?php if (stripos($col['Type'], 'text') !== false): ?>
+                                  <textarea name="rows[<?= esc($row[$pk]) ?>][fields][<?= esc($field) ?>]" class="form-textarea" rows="2"><?= esc($val) ?></textarea>
+                                <?php else: ?>
+                                  <input type="text" name="rows[<?= esc($row[$pk]) ?>][fields][<?= esc($field) ?>]" class="form-input" value="<?= esc($val) ?>" <?= $is_ai ? 'readonly style="opacity:0.6;"' : '' ?>>
+                                <?php endif; ?>
+                              </td>
+                            </tr>
+                            <?php endforeach; ?>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   <?php endforeach; ?>
-                </tbody>
-              </table></div>
-              <div class="form-actions">
-                <button type="submit" class="btn btn-primary"><?= $is_edit ? 'Save' : 'Insert' ?></button>
-                <?php if ($is_edit): ?><a href="<?= esc(base_url(['db' => $selected_db, 'table' => $selected_table, 'tab' => 'browse'])) ?>" class="btn btn-secondary">Cancel</a><?php endif; ?>
+
+                  <div class="form-actions" style="margin-top:20px;display:flex;gap:12px;">
+                    <button type="submit" class="btn btn-primary">Save All Changes (<?= count($bulk_rows) ?> rows)</button>
+                    <a href="<?= esc(base_url(['db' => $selected_db, 'table' => $selected_table, 'tab' => 'browse'])) ?>" class="btn btn-secondary">Cancel</a>
+                  </div>
+                </form>
               </div>
-            </form>
-          </div>
-        </div>
-        <?php
+            </div>
+            <?php
+        } else {
+            $edit_row = null;
+            if ($edit_mode && $pk && $edit_pk_val) {
+                $res = $conn->query("SELECT * FROM `$selected_table` WHERE `" . $conn->real_escape_string($pk) . "` = '" . $conn->real_escape_string($edit_pk_val) . "'");
+                if ($res) $edit_row = $res->fetch_assoc();
+            }
+            $is_edit = $edit_row !== null;
+            ?>
+            <div class="panel">
+              <div class="panel-header"><?= $is_edit ? 'Edit Row' : 'Insert Row' ?> — <?= esc($selected_table) ?></div>
+              <div class="panel-body">
+                <?php if (!empty($is_view)): ?>
+                  <div style="background:rgba(59,130,246,0.1);border-left:3px solid #3b82f6;padding:10px 14px;border-radius:4px;margin-bottom:16px;font-size:13px;color:var(--text);">
+                    ℹ <strong>View Notice:</strong> This is a virtual table (View). Inserts are only allowed in MySQL if the view references a single base table without aggregate functions, DISTINCT, GROUP BY, or UNION.
+                  </div>
+                <?php endif; ?>
+                <form method="POST" action="actions.php">
+                  <input type="hidden" name="action" value="<?= $is_edit ? 'update_row' : 'insert_row' ?>">
+                  <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
+                  <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
+                  <?php if ($is_edit): ?>
+                    <input type="hidden" name="pk_col" value="<?= esc($pk) ?>">
+                    <input type="hidden" name="pk_val" value="<?= esc($edit_pk_val) ?>">
+                  <?php endif; ?>
+                  <div class="table-wrap"><table class="data-table">
+                    <thead><tr><th>Column</th><th>Type</th><th>Null</th><th>Value</th></tr></thead>
+                    <tbody>
+                      <?php foreach ($columns as $col):
+                        $field = $col['Field'];
+                        $is_pk = ($field === $pk);
+                        if ($is_edit && $is_pk && strpos($col['Extra'], 'auto_increment') !== false) continue;
+                        $val = $is_edit ? ($edit_row[$field] ?? '') : '';
+                      ?>
+                      <tr>
+                        <td><strong><?= esc($field) ?></strong></td>
+                        <td><?= esc($col['Type']) ?></td>
+                        <td><?= esc($col['Null']) ?></td>
+                        <td>
+                          <?php if (stripos($col['Type'], 'text') !== false): ?>
+                            <textarea name="fields[<?= esc($field) ?>]" class="form-textarea" rows="2"><?= esc($val) ?></textarea>
+                          <?php else: ?>
+                            <input type="text" name="fields[<?= esc($field) ?>]" class="form-input" value="<?= esc($val) ?>">
+                          <?php endif; ?>
+                          <?php if ($col['Null'] === 'YES'): ?>
+                            <label class="checkbox-label" style="margin-top:4px"><input type="checkbox" name="nulls[<?= esc($field) ?>]"> NULL</label>
+                          <?php endif; ?>
+                        </td>
+                      </tr>
+                      <?php endforeach; ?>
+                    </tbody>
+                  </table></div>
+                  <div class="form-actions">
+                    <button type="submit" class="btn btn-primary"><?= $is_edit ? 'Save' : 'Insert' ?></button>
+                    <?php if ($is_edit): ?><a href="<?= esc(base_url(['db' => $selected_db, 'table' => $selected_table, 'tab' => 'browse'])) ?>" class="btn btn-secondary">Cancel</a><?php endif; ?>
+                  </div>
+                </form>
+              </div>
+            </div>
+            <?php
+        }
         break;
 
     case 'export':
+        $is_selected_export = !empty($_GET['selected']) && !empty($_SESSION['export_query']) && (($_SESSION['export_table'] ?? '') === $selected_table);
+        $selected_count = $is_selected_export ? intval($_SESSION['export_selected_count'] ?? 0) : 0;
         ?>
         <div class="panel">
           <div class="panel-header">Export — <?= esc($selected_table) ?></div>
           <div class="panel-body">
-            <p style="margin-bottom:12px;color:var(--text-secondary)">Choose export format:</p>
+            <?php if ($is_selected_export): ?>
+              <div style="background: rgba(59, 130, 246, 0.12); border-left: 3px solid #3b82f6; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                  <span style="font-size: 13px; font-weight: 500; color: var(--text);">Exporting <strong><?= $selected_count ?> selected row<?= $selected_count === 1 ? '' : 's' ?></strong></span>
+                </div>
+                <a href="<?= esc(base_url(['db' => $selected_db, 'table' => $selected_table, 'tab' => 'export'])) ?>" class="btn btn-secondary btn-sm" style="font-size: 12px;">Switch to Full Table Export</a>
+              </div>
+            <?php endif; ?>
+
+            <p style="margin-bottom:12px;color:var(--text-secondary)">Choose export format <?= $is_selected_export ? "(for $selected_count selected rows)" : '(entire table)' ?>:</p>
             <div class="form-actions">
-              <a href="export.php?db=<?= urlencode($selected_db) ?>&table=<?= urlencode($selected_table) ?>&format=sql" class="btn btn-primary">SQL</a>
-              <a href="export.php?db=<?= urlencode($selected_db) ?>&table=<?= urlencode($selected_table) ?>&format=csv" class="btn btn-secondary">CSV</a>
-              <a href="export.php?db=<?= urlencode($selected_db) ?>&table=<?= urlencode($selected_table) ?>&format=json" class="btn btn-secondary">JSON</a>
-              <a href="export.php?db=<?= urlencode($selected_db) ?>&table=<?= urlencode($selected_table) ?>&format=xml" class="btn btn-secondary">XML</a>
+              <a href="export.php?db=<?= urlencode($selected_db) ?>&table=<?= urlencode($selected_table) ?>&format=sql<?= $is_selected_export ? '&selected=1' : '' ?>" class="btn btn-primary">SQL</a>
+              <a href="export.php?db=<?= urlencode($selected_db) ?>&table=<?= urlencode($selected_table) ?>&format=csv<?= $is_selected_export ? '&selected=1' : '' ?>" class="btn btn-secondary">CSV</a>
+              <a href="export.php?db=<?= urlencode($selected_db) ?>&table=<?= urlencode($selected_table) ?>&format=json<?= $is_selected_export ? '&selected=1' : '' ?>" class="btn btn-secondary">JSON</a>
+              <a href="export.php?db=<?= urlencode($selected_db) ?>&table=<?= urlencode($selected_table) ?>&format=xml<?= $is_selected_export ? '&selected=1' : '' ?>" class="btn btn-secondary">XML</a>
             </div>
           </div>
         </div>
