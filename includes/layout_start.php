@@ -88,7 +88,7 @@ $accent_color = $_COOKIE['xddb_accent_color'] ?? '';
           <?php 
           $fav_icon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--warning);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
           foreach ($_SESSION['favorites'] as $fav): ?>
-            <?= render_sidebar_db_group($fav, $tables_by_db[$fav] ?? [], $selected_db, $selected_table, $fav_icon) ?>
+            <?= render_sidebar_db_group($fav, $tables_by_db[$fav] ?? [], $selected_db, $selected_table, $fav_icon, false, '', $views_by_db[$fav] ?? []) ?>
           <?php endforeach; ?>
         <?php endif; ?>
         <?php if (!empty($_SESSION['recent'])): ?>
@@ -96,12 +96,12 @@ $accent_color = $_COOKIE['xddb_accent_color'] ?? '';
           <?php 
           $rec_icon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.75;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
           foreach ($_SESSION['recent'] as $rec): ?>
-            <?= render_sidebar_db_group($rec, $tables_by_db[$rec] ?? [], $selected_db, $selected_table, $rec_icon, true, $active_tab) ?>
+            <?= render_sidebar_db_group($rec, $tables_by_db[$rec] ?? [], $selected_db, $selected_table, $rec_icon, true, $active_tab, $views_by_db[$rec] ?? []) ?>
           <?php endforeach; ?>
         <?php endif; ?>
         <div class="sidebar-label">Databases (<?= count($databases) ?>)</div>
         <?php foreach ($databases as $dbitem): ?>
-          <?= render_sidebar_db_group($dbitem, $tables_by_db[$dbitem] ?? [], $selected_db, $selected_table) ?>
+          <?= render_sidebar_db_group($dbitem, $tables_by_db[$dbitem] ?? [], $selected_db, $selected_table, null, false, '', $views_by_db[$dbitem] ?? []) ?>
         <?php endforeach; ?>
       </div>
       <div class="sidebar-actions">

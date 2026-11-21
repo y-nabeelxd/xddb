@@ -64,12 +64,16 @@ if ($selected_table) {
 
 $databases = $conn ? get_databases($conn) : [];
 $tables_by_db = [];
+$views_by_db = [];
 if ($conn) {
     foreach ($databases as $db_name) {
         $tables_by_db[$db_name] = get_tables($conn, $db_name);
+        $views_by_db[$db_name] = get_views($conn, $db_name);
     }
 }
 $tables = ($selected_db && isset($tables_by_db[$selected_db])) ? $tables_by_db[$selected_db] : [];
+$views = ($selected_db && isset($views_by_db[$selected_db])) ? $views_by_db[$selected_db] : [];
+$is_view = ($selected_table && in_array($selected_table, $views, true));
 
 if (!isset($_SESSION['favorites'])) {
     $_SESSION['favorites'] = [];

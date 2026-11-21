@@ -430,13 +430,29 @@ switch ($action) {
 
     case 'drop_table':
         $conn->select_db($db);
-        if ($table && $conn->query("DROP TABLE `$table`")) {
-            add_query_history("DROP TABLE `$table`");
-            flash_message('success', "Table '$table' dropped.");
-            unset($redirect_params['table']);
-            $redirect_params['tab'] = 'structure';
-        } else {
-            flash_message('error', $conn->error);
+        if ($table) {
+            $is_view_entity = is_view($conn, $db, $table);
+            $drop_sql = $is_view_entity ? "DROP VIEW `$table`" : "DROP TABLE `$table`";
+
+            if ($conn->query($drop_sql)) {
+                add_query_history($drop_sql);
+                $entity_label = $is_view_entity ? "View" : "Table";
+                flash_message('success', "$entity_label '$table' dropped.");
+                unset($redirect_params['table']);
+                $redirect_params['tab'] = 'structure';
+            } else {
+                // If DROP TABLE failed because the entity is actually a VIEW (MySQL errno 1051)
+                if ($conn->errno == 1051 && !$is_view_entity) {
+                    if ($conn->query("DROP VIEW `$table`")) {
+                        add_query_history("DROP VIEW `$table`");
+                        flash_message('success', "View '$table' dropped.");
+                        unset($redirect_params['table']);
+                        $redirect_params['tab'] = 'structure';
+                        break;
+                    }
+                }
+                flash_message('error', $conn->error);
+            }
         }
         break;
 
@@ -446,11 +462,16 @@ switch ($action) {
         $selected_tables = $_POST['selected_tables'] ?? [];
         if (!empty($selected_tables) && $bulk_action) {
             $success_count = 0;
+            $views_in_db = get_views($conn, $db);
             foreach ($selected_tables as $t) {
+                $is_v = in_array($t, $views_in_db, true);
                 $sql = "";
                 if ($bulk_action === 'drop') {
-                    $sql = "DROP TABLE `$t`";
+                    $sql = $is_v ? "DROP VIEW `$t`" : "DROP TABLE `$t`";
                 } elseif ($bulk_action === 'empty') {
+                    if ($is_v) {
+                        continue; // Views cannot be truncated in MySQL
+                    }
                     $sql = "TRUNCATE TABLE `$t`";
                 }
                 
@@ -459,13 +480,21 @@ switch ($action) {
                         add_query_history($sql);
                         $success_count++;
                     } else {
+                        // Fallback attempt for views on drop
+                        if ($bulk_action === 'drop' && $conn->errno == 1051) {
+                            if ($conn->query("DROP VIEW `$t`")) {
+                                add_query_history("DROP VIEW `$t`");
+                                $success_count++;
+                                continue;
+                            }
+                        }
                         flash_message('error', "Error on table `$t`: " . $conn->error);
                     }
                 }
             }
             if ($success_count > 0) {
                 $action_name = $bulk_action === 'drop' ? 'dropped' : 'emptied';
-                flash_message('success', "$success_count table(s) $action_name successfully.");
+                flash_message('success', "$success_count item(s) $action_name successfully.");
             }
             if ($bulk_action === 'drop' && in_array($table, $selected_tables)) {
                 unset($redirect_params['table']);
@@ -727,17 +756,19 @@ switch ($action) {
 
     case 'create_view_from_table':
         $conn->select_db($db);
-        $view_name = $_POST['view_name'] ?? '';
+        $view_name = trim($_POST['view_name'] ?? '');
         if ($view_name) {
-            $sql = "CREATE VIEW `" . $conn->real_escape_string($view_name) . "` AS SELECT * FROM `$table`";
+            $view_esc = $conn->real_escape_string($view_name);
+            $sql = "CREATE VIEW `$view_esc` AS SELECT * FROM `$table`";
             if ($conn->query($sql)) {
                 add_query_history($sql);
                 flash_message('success', "View '$view_name' created successfully.");
+                $redirect_params['table'] = $view_name;
+                $redirect_params['tab'] = 'browse';
             } else {
                 flash_message('error', $conn->error);
             }
         }
-        $redirect_params['tab'] = 'browse';
         break;
 
     case 'copy_row':

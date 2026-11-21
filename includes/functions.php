@@ -441,6 +441,15 @@ function get_views($conn, $db) {
     return $views;
 }
 
+function is_view($conn, $db, $table) {
+    static $cache = [];
+    if (!$conn || !$db || !$table) return false;
+    if (!isset($cache[$db])) {
+        $cache[$db] = get_views($conn, $db);
+    }
+    return in_array($table, $cache[$db], true);
+}
+
 function get_foreign_keys($conn, $db) {
     $keys = [];
     $query = "SELECT TABLE_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME 
@@ -498,7 +507,7 @@ function get_flash() {
     return null;
 }
 
-function render_sidebar_db_group($dbitem, $tables, $selected_db, $selected_table, $icon = null, $removable = false, $active_tab = '') {
+function render_sidebar_db_group($dbitem, $tables, $selected_db, $selected_table, $icon = null, $removable = false, $active_tab = '', $views = []) {
     if ($icon === null) {
         $icon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.75;"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>';
     }
@@ -535,8 +544,15 @@ function render_sidebar_db_group($dbitem, $tables, $selected_db, $selected_table
     $html .= '</div>';
     $html .= '<div class="sidebar-table-list' . ($is_expanded ? '' : ' collapsed') . '">';
     foreach ($tables as $titem) {
+        $is_view_item = in_array($titem, $views, true);
         $html .= '<a href="' . esc(base_url(['db' => $dbitem, 'table' => $titem, 'tab' => 'browse'])) . '" class="sidebar-item nested' . ($selected_table === $titem && $is_active ? ' active' : '') . '" data-name="' . esc($titem) . '">';
-        $html .= '<span class="icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.75;"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M3 15h18M9 9v12"/></svg></span>' . esc($titem) . '</a>';
+        if ($is_view_item) {
+            $html .= '<span class="icon" title="View"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.9;color:#60a5fa;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></span>' . esc($titem);
+            $html .= '<span style="font-size:9px;font-weight:600;padding:1px 4px;border-radius:3px;background:rgba(59,130,246,0.15);color:#60a5fa;margin-left:auto;letter-spacing:0.5px;">VIEW</span>';
+        } else {
+            $html .= '<span class="icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.75;"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M3 15h18M9 9v12"/></svg></span>' . esc($titem);
+        }
+        $html .= '</a>';
     }
     $html .= '</div></div>';
     return $html;

@@ -24,10 +24,15 @@ switch ($active_tab) {
           <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center;">
             <div>
               Browse — <?= esc($selected_table) ?>
+              <?php if (!empty($is_view)): ?>
+                <span style="display:inline-flex;align-items:center;padding:1px 6px;font-size:10px;font-weight:600;letter-spacing:0.5px;border-radius:4px;background:rgba(59,130,246,0.15);color:#60a5fa;margin-left:6px;vertical-align:middle;">VIEW</span>
+              <?php endif; ?>
               <span style="font-weight:400;color:var(--text-muted)"><?= $total ?> row(s)</span>
             </div>
             <div>
-              <button type="button" class="btn btn-secondary btn-sm" id="btnImportCsv">📥 Import CSV</button>
+              <?php if (empty($is_view)): ?>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnImportCsv">📥 Import CSV</button>
+              <?php endif; ?>
             </div>
           </div>
 
@@ -167,7 +172,7 @@ switch ($active_tab) {
                     <input type="hidden" name="action" value="create_view_from_table">
                     <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
                     <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
-                    <button type="button" class="btn btn-secondary btn-sm" style="display: flex; align-items: center; gap: 6px;" onclick="let name = prompt('View name:'); if(name) { this.form.insertAdjacentHTML('beforeend', `<input type=\'hidden\' name=\'view_name\' value=\'${name}\'>`); this.form.submit(); }">
+                    <button type="button" class="btn btn-secondary btn-sm" style="display: flex; align-items: center; gap: 6px;" onclick="let name = prompt('Enter a name for the new view:'); if(name && name.trim()) { this.form.insertAdjacentHTML('beforeend', `<input type=\'hidden\' name=\'view_name\' value=\'${name.trim()}\'>`); this.form.submit(); }">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> Create view
                     </button>
                 </form>
@@ -242,66 +247,108 @@ switch ($active_tab) {
         break;
 
     case 'structure':
-        $indexes = get_table_indexes($conn, $selected_db, $selected_table);
-        $status = get_table_status($conn, $selected_db, $selected_table);
-        ?>
-        <div class="stats-grid">
-          <div class="stat-card"><div class="stat-label">Rows</div><div class="stat-value"><?= esc($status['Rows'] ?? 0) ?></div></div>
-          <div class="stat-card"><div class="stat-label">Engine</div><div class="stat-value" style="font-size:14px"><?= esc($status['Engine'] ?? '') ?></div></div>
-          <div class="stat-card"><div class="stat-label">Collation</div><div class="stat-value" style="font-size:14px"><?= esc($status['Collation'] ?? '') ?></div></div>
-          <div class="stat-card"><div class="stat-label">Size</div><div class="stat-value" style="font-size:14px"><?= format_bytes(($status['Data_length'] ?? 0) + ($status['Index_length'] ?? 0)) ?></div></div>
-        </div>
-        <div class="panel">
-          <div class="panel-header">Table Structure — <?= esc($selected_table) ?></div>
-          <div class="panel-body" style="padding:0">
-            <div class="table-wrap" style="border:none"><table class="data-table">
-              <thead><tr><th>#</th><th>Column</th><th>Type</th><th>Collation</th><th>Null</th><th>Default</th><th>Extra</th><th>Actions</th></tr></thead>
-              <tbody>
-                <?php foreach ($columns as $i => $col): ?>
-                <tr>
-                  <td><?= $i + 1 ?></td>
-                  <td><strong><?= esc($col['Field']) ?></strong><?= $col['Key'] === 'PRI' ? ' 🔑' : '' ?></td>
-                  <td><?= esc($col['Type']) ?></td>
-                  <td><?= esc($col['Collation'] ?? '') ?></td>
-                  <td><?= esc($col['Null']) ?></td>
-                  <td><?= $col['Default'] === null ? '<span class="null-val">NULL</span>' : esc($col['Default']) ?></td>
-                  <td><?= esc($col['Extra']) ?></td>
-                  <td>
-                    <form method="POST" action="actions.php" class="inline-form confirm-delete">
-                      <input type="hidden" name="action" value="drop_column">
-                      <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
-                      <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
-                      <input type="hidden" name="col_name" value="<?= esc($col['Field']) ?>">
-                      <button type="submit" class="btn btn-danger btn-sm">Drop</button>
-                    </form>
-                  </td>
-                </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table></div>
-          </div>
-        </div>
-        <div class="panel">
-          <div class="panel-header">Add Column</div>
-          <div class="panel-body">
-            <form method="POST" action="actions.php">
-              <input type="hidden" name="action" value="add_column">
-              <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
-              <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
-              <div class="form-row">
-                <div class="form-group"><label class="form-label">Name</label><input type="text" name="col_name" class="form-input" required></div>
-                <div class="form-group"><label class="form-label">Type</label><select name="col_type" class="form-select"><option>VARCHAR</option><option>INT</option><option>BIGINT</option><option>TEXT</option><option>DATE</option><option>DATETIME</option><option>FLOAT</option><option>DECIMAL</option><option>BOOLEAN</option></select></div>
-                <div class="form-group"><label class="form-label">Length</label><input type="text" name="col_length" class="form-input" value="255"></div>
-                <div class="form-group"><label class="form-label">Default</label><input type="text" name="col_default" class="form-input"></div>
-                <div class="form-group"><label class="form-label">After</label><select name="after_col" class="form-select"><option value="">First</option><?php foreach ($columns as $c): ?><option value="<?= esc($c['Field']) ?>"><?= esc($c['Field']) ?></option><?php endforeach; ?></select></div>
+        if (!empty($is_view)):
+            $cv_res = $conn->query("SHOW CREATE VIEW `$selected_table`");
+            $create_view_sql = ($cv_res && $cv_row = $cv_res->fetch_row()) ? ($cv_row[1] ?? '') : '';
+            ?>
+            <div class="stats-grid">
+              <div class="stat-card"><div class="stat-label">Type</div><div class="stat-value" style="font-size:14px;color:#60a5fa;">VIEW (Virtual)</div></div>
+              <div class="stat-card"><div class="stat-label">Columns</div><div class="stat-value"><?= count($columns) ?></div></div>
+              <div class="stat-card"><div class="stat-label">Storage</div><div class="stat-value" style="font-size:14px">Dynamic (0 B)</div></div>
+              <div class="stat-card"><div class="stat-label">Status</div><div class="stat-value" style="font-size:14px;color:var(--success);">Active</div></div>
+            </div>
+            <?php if ($create_view_sql): ?>
+            <div class="panel">
+              <div class="panel-header">View Definition (SQL Query)</div>
+              <div class="panel-body">
+                <pre style="background:var(--bg-tertiary);padding:12px;border:1px solid var(--border-color);border-radius:6px;font-size:12px;white-space:pre-wrap;word-break:break-all;color:var(--text);margin:0;font-family:monospace;"><?= esc($create_view_sql) ?></pre>
               </div>
-              <label class="checkbox-label"><input type="checkbox" name="col_null" checked> Allow NULL</label>
-              <div class="form-group" style="margin-top:8px"><label class="form-label">Extra</label><input type="text" name="col_extra" class="form-input" placeholder="AUTO_INCREMENT"></div>
-              <div class="form-actions"><button type="submit" class="btn btn-primary">Add Column</button></div>
-            </form>
-          </div>
-        </div>
-        <?php
+            </div>
+            <?php endif; ?>
+            <div class="panel">
+              <div class="panel-header">Columns in View — <?= esc($selected_table) ?></div>
+              <div class="panel-body" style="padding:0">
+                <div class="table-wrap" style="border:none"><table class="data-table">
+                  <thead><tr><th>#</th><th>Column</th><th>Type</th><th>Collation</th><th>Null</th><th>Default</th><th>Extra</th></tr></thead>
+                  <tbody>
+                    <?php foreach ($columns as $i => $col): ?>
+                    <tr>
+                      <td><?= $i + 1 ?></td>
+                      <td><strong><?= esc($col['Field']) ?></strong></td>
+                      <td><?= esc($col['Type']) ?></td>
+                      <td><?= esc($col['Collation'] ?? '') ?></td>
+                      <td><?= esc($col['Null']) ?></td>
+                      <td><?= $col['Default'] === null ? '<span class="null-val">NULL</span>' : esc($col['Default']) ?></td>
+                      <td><?= esc($col['Extra']) ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table></div>
+              </div>
+            </div>
+            <?php
+        else:
+            $indexes = get_table_indexes($conn, $selected_db, $selected_table);
+            $status = get_table_status($conn, $selected_db, $selected_table);
+            ?>
+            <div class="stats-grid">
+              <div class="stat-card"><div class="stat-label">Rows</div><div class="stat-value"><?= esc($status['Rows'] ?? 0) ?></div></div>
+              <div class="stat-card"><div class="stat-label">Engine</div><div class="stat-value" style="font-size:14px"><?= esc($status['Engine'] ?? '') ?></div></div>
+              <div class="stat-card"><div class="stat-label">Collation</div><div class="stat-value" style="font-size:14px"><?= esc($status['Collation'] ?? '') ?></div></div>
+              <div class="stat-card"><div class="stat-label">Size</div><div class="stat-value" style="font-size:14px"><?= format_bytes(($status['Data_length'] ?? 0) + ($status['Index_length'] ?? 0)) ?></div></div>
+            </div>
+            <div class="panel">
+              <div class="panel-header">Table Structure — <?= esc($selected_table) ?></div>
+              <div class="panel-body" style="padding:0">
+                <div class="table-wrap" style="border:none"><table class="data-table">
+                  <thead><tr><th>#</th><th>Column</th><th>Type</th><th>Collation</th><th>Null</th><th>Default</th><th>Extra</th><th>Actions</th></tr></thead>
+                  <tbody>
+                    <?php foreach ($columns as $i => $col): ?>
+                    <tr>
+                      <td><?= $i + 1 ?></td>
+                      <td><strong><?= esc($col['Field']) ?></strong><?= $col['Key'] === 'PRI' ? ' 🔑' : '' ?></td>
+                      <td><?= esc($col['Type']) ?></td>
+                      <td><?= esc($col['Collation'] ?? '') ?></td>
+                      <td><?= esc($col['Null']) ?></td>
+                      <td><?= $col['Default'] === null ? '<span class="null-val">NULL</span>' : esc($col['Default']) ?></td>
+                      <td><?= esc($col['Extra']) ?></td>
+                      <td>
+                        <form method="POST" action="actions.php" class="inline-form confirm-delete">
+                          <input type="hidden" name="action" value="drop_column">
+                          <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
+                          <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
+                          <input type="hidden" name="col_name" value="<?= esc($col['Field']) ?>">
+                          <button type="submit" class="btn btn-danger btn-sm">Drop</button>
+                        </form>
+                      </td>
+                    </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-header">Add Column</div>
+              <div class="panel-body">
+                <form method="POST" action="actions.php">
+                  <input type="hidden" name="action" value="add_column">
+                  <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
+                  <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
+                  <div class="form-row">
+                    <div class="form-group"><label class="form-label">Name</label><input type="text" name="col_name" class="form-input" required></div>
+                    <div class="form-group"><label class="form-label">Type</label><select name="col_type" class="form-select"><option>VARCHAR</option><option>INT</option><option>BIGINT</option><option>TEXT</option><option>DATE</option><option>DATETIME</option><option>FLOAT</option><option>DECIMAL</option><option>BOOLEAN</option></select></div>
+                    <div class="form-group"><label class="form-label">Length</label><input type="text" name="col_length" class="form-input" value="255"></div>
+                    <div class="form-group"><label class="form-label">Default</label><input type="text" name="col_default" class="form-input"></div>
+                    <div class="form-group"><label class="form-label">After</label><select name="after_col" class="form-select"><option value="">First</option><?php foreach ($columns as $c): ?><option value="<?= esc($c['Field']) ?>"><?= esc($c['Field']) ?></option><?php endforeach; ?></select></div>
+                  </div>
+                  <label class="checkbox-label"><input type="checkbox" name="col_null" checked> Allow NULL</label>
+                  <div class="form-group" style="margin-top:8px"><label class="form-label">Extra</label><input type="text" name="col_extra" class="form-input" placeholder="AUTO_INCREMENT"></div>
+                  <div class="form-actions"><button type="submit" class="btn btn-primary">Add Column</button></div>
+                </form>
+              </div>
+            </div>
+            <?php
+        endif;
         break;
 
     case 'sql':
@@ -371,6 +418,11 @@ switch ($active_tab) {
         <div class="panel">
           <div class="panel-header"><?= $is_edit ? 'Edit Row' : 'Insert Row' ?> — <?= esc($selected_table) ?></div>
           <div class="panel-body">
+            <?php if (!empty($is_view)): ?>
+              <div style="background:rgba(59,130,246,0.1);border-left:3px solid #3b82f6;padding:10px 14px;border-radius:4px;margin-bottom:16px;font-size:13px;color:var(--text);">
+                ℹ <strong>View Notice:</strong> This is a virtual table (View). Inserts are only allowed in MySQL if the view references a single base table without aggregate functions, DISTINCT, GROUP BY, or UNION.
+              </div>
+            <?php endif; ?>
             <form method="POST" action="actions.php">
               <input type="hidden" name="action" value="<?= $is_edit ? 'update_row' : 'insert_row' ?>">
               <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
@@ -452,117 +504,178 @@ switch ($active_tab) {
         break;
 
     case 'operations':
-        $status = get_table_status($conn, $selected_db, $selected_table);
-        ?>
-        <div class="panel">
-          <div class="panel-header">Table Operations — <?= esc($selected_table) ?></div>
-          <div class="panel-body">
-            <form method="POST" action="actions.php" style="margin-bottom:16px">
-              <input type="hidden" name="action" value="rename_table">
-              <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
-              <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
-              <div class="form-group"><label class="form-label">Rename Table</label><div style="display:flex;gap:8px"><input type="text" name="new_name" class="form-input" placeholder="New table name" required><button type="submit" class="btn btn-primary">Rename</button></div></div>
-            </form>
-            <form method="POST" action="actions.php" style="margin-bottom:16px">
-              <input type="hidden" name="action" value="copy_table">
-              <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
-              <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
-              <div class="form-row">
-                <div class="form-group"><label class="form-label">Copy To</label><input type="text" name="new_name" class="form-input" required></div>
-                <div class="form-group"><label class="form-label">Target Database</label><select name="target_db" class="form-select"><?php foreach ($databases as $dbitem): ?><option value="<?= esc($dbitem) ?>" <?= $dbitem === $selected_db ? 'selected' : '' ?>><?= esc($dbitem) ?></option><?php endforeach; ?></select></div>
+        if (!empty($is_view)):
+            $cv_res = $conn->query("SHOW CREATE VIEW `$selected_table`");
+            $create_view_sql = ($cv_res && $cv_row = $cv_res->fetch_row()) ? ($cv_row[1] ?? '') : '';
+            ?>
+            <div class="panel">
+              <div class="panel-header">View Operations — <?= esc($selected_table) ?> <span style="font-size:10px;font-weight:600;background:rgba(59,130,246,0.15);color:#60a5fa;padding:2px 6px;border-radius:4px;margin-left:6px;letter-spacing:0.5px;">VIEW</span></div>
+              <div class="panel-body">
+                <?php if ($create_view_sql): ?>
+                <div class="form-group" style="margin-bottom:16px;">
+                  <label class="form-label">View Definition (SQL Query)</label>
+                  <pre style="background:var(--bg-tertiary);padding:12px;border:1px solid var(--border-color);border-radius:6px;font-size:12px;white-space:pre-wrap;word-break:break-all;color:var(--text);margin:0;font-family:monospace;"><?= esc($create_view_sql) ?></pre>
+                </div>
+                <?php endif; ?>
+
+                <form method="POST" action="actions.php" style="margin-bottom:16px">
+                  <input type="hidden" name="action" value="rename_table">
+                  <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
+                  <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
+                  <div class="form-group">
+                    <label class="form-label">Rename View</label>
+                    <div style="display:flex;gap:8px">
+                      <input type="text" name="new_name" class="form-input" placeholder="New view name" required>
+                      <button type="submit" class="btn btn-primary">Rename View</button>
+                    </div>
+                  </div>
+                </form>
+
+                <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+                <form method="POST" action="actions.php" class="confirm-delete">
+                  <input type="hidden" name="action" value="drop_table">
+                  <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
+                  <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
+                  <button type="submit" class="btn btn-danger">Drop View</button>
+                </form>
               </div>
-              <label class="checkbox-label"><input type="checkbox" name="copy_data" checked> Copy data</label>
-              <div class="form-actions"><button type="submit" class="btn btn-secondary">Copy Table</button></div>
-            </form>
-            <form method="POST" action="actions.php" style="margin-bottom:16px">
-              <input type="hidden" name="action" value="change_engine">
-              <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
-              <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
-              <div class="form-group"><label class="form-label">Storage Engine (current: <?= esc($status['Engine'] ?? '') ?>)</label>
-                <div style="display:flex;gap:8px"><select name="engine" class="form-select"><option value="InnoDB">InnoDB</option><option value="MyISAM">MyISAM</option><option value="MEMORY">MEMORY</option></select><button type="submit" class="btn btn-secondary">Change</button></div>
-              </div>
-            </form>
-            <div class="form-actions">
-              <form method="POST" action="actions.php" class="inline-form"><input type="hidden" name="action" value="check_table"><input type="hidden" name="db" value="<?= esc($selected_db) ?>"><input type="hidden" name="table" value="<?= esc($selected_table) ?>"><button type="submit" class="btn btn-secondary">Check</button></form>
-              <form method="POST" action="actions.php" class="inline-form"><input type="hidden" name="action" value="optimize_table"><input type="hidden" name="db" value="<?= esc($selected_db) ?>"><input type="hidden" name="table" value="<?= esc($selected_table) ?>"><button type="submit" class="btn btn-secondary">Optimize</button></form>
-              <form method="POST" action="actions.php" class="inline-form"><input type="hidden" name="action" value="analyze_table"><input type="hidden" name="db" value="<?= esc($selected_db) ?>"><input type="hidden" name="table" value="<?= esc($selected_table) ?>"><button type="submit" class="btn btn-secondary">Analyze</button></form>
-              <form method="POST" action="actions.php" class="inline-form"><input type="hidden" name="action" value="repair_table"><input type="hidden" name="db" value="<?= esc($selected_db) ?>"><input type="hidden" name="table" value="<?= esc($selected_table) ?>"><button type="submit" class="btn btn-secondary">Repair</button></form>
             </div>
-            <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
-            <form method="POST" action="actions.php" class="confirm-delete">
-              <input type="hidden" name="action" value="drop_table">
-              <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
-              <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
-              <button type="submit" class="btn btn-danger">Drop Table</button>
-            </form>
-          </div>
-        </div>
-        <?php
+            <?php
+        else:
+            $status = get_table_status($conn, $selected_db, $selected_table);
+            ?>
+            <div class="panel">
+              <div class="panel-header">Table Operations — <?= esc($selected_table) ?></div>
+              <div class="panel-body">
+                <form method="POST" action="actions.php" style="margin-bottom:16px">
+                  <input type="hidden" name="action" value="rename_table">
+                  <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
+                  <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
+                  <div class="form-group"><label class="form-label">Rename Table</label><div style="display:flex;gap:8px"><input type="text" name="new_name" class="form-input" placeholder="New table name" required><button type="submit" class="btn btn-primary">Rename</button></div></div>
+                </form>
+                <form method="POST" action="actions.php" style="margin-bottom:16px">
+                  <input type="hidden" name="action" value="copy_table">
+                  <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
+                  <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
+                  <div class="form-row">
+                    <div class="form-group"><label class="form-label">Copy To</label><input type="text" name="new_name" class="form-input" required></div>
+                    <div class="form-group"><label class="form-label">Target Database</label><select name="target_db" class="form-select"><?php foreach ($databases as $dbitem): ?><option value="<?= esc($dbitem) ?>" <?= $dbitem === $selected_db ? 'selected' : '' ?>><?= esc($dbitem) ?></option><?php endforeach; ?></select></div>
+                  </div>
+                  <label class="checkbox-label"><input type="checkbox" name="copy_data" checked> Copy data</label>
+                  <div class="form-actions"><button type="submit" class="btn btn-secondary">Copy Table</button></div>
+                </form>
+                <form method="POST" action="actions.php" style="margin-bottom:16px">
+                  <input type="hidden" name="action" value="change_engine">
+                  <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
+                  <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
+                  <div class="form-group"><label class="form-label">Storage Engine (current: <?= esc($status['Engine'] ?? '') ?>)</label>
+                    <div style="display:flex;gap:8px"><select name="engine" class="form-select"><option value="InnoDB">InnoDB</option><option value="MyISAM">MyISAM</option><option value="MEMORY">MEMORY</option></select><button type="submit" class="btn btn-secondary">Change</button></div>
+                  </div>
+                </form>
+                <div class="form-actions">
+                  <form method="POST" action="actions.php" class="inline-form"><input type="hidden" name="action" value="check_table"><input type="hidden" name="db" value="<?= esc($selected_db) ?>"><input type="hidden" name="table" value="<?= esc($selected_table) ?>"><button type="submit" class="btn btn-secondary">Check</button></form>
+                  <form method="POST" action="actions.php" class="inline-form"><input type="hidden" name="action" value="optimize_table"><input type="hidden" name="db" value="<?= esc($selected_db) ?>"><input type="hidden" name="table" value="<?= esc($selected_table) ?>"><button type="submit" class="btn btn-secondary">Optimize</button></form>
+                  <form method="POST" action="actions.php" class="inline-form"><input type="hidden" name="action" value="analyze_table"><input type="hidden" name="db" value="<?= esc($selected_db) ?>"><input type="hidden" name="table" value="<?= esc($selected_table) ?>"><button type="submit" class="btn btn-secondary">Analyze</button></form>
+                  <form method="POST" action="actions.php" class="inline-form"><input type="hidden" name="action" value="repair_table"><input type="hidden" name="db" value="<?= esc($selected_db) ?>"><input type="hidden" name="table" value="<?= esc($selected_table) ?>"><button type="submit" class="btn btn-secondary">Repair</button></form>
+                </div>
+                <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+                <form method="POST" action="actions.php" class="confirm-delete">
+                  <input type="hidden" name="action" value="drop_table">
+                  <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
+                  <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
+                  <button type="submit" class="btn btn-danger">Drop Table</button>
+                </form>
+              </div>
+            </div>
+            <?php
+        endif;
         break;
 
     case 'triggers':
-        $triggers = get_triggers($conn, $selected_db, $selected_table);
-        ?>
-        <div class="panel">
-          <div class="panel-header">Triggers — <?= esc($selected_table) ?></div>
-          <div class="panel-body" style="padding:0">
-            <?php if (empty($triggers)): ?>
-              <p style="padding:16px;color:var(--text-muted)">No triggers on this table.</p>
-            <?php else: ?>
-              <div class="table-wrap" style="border:none"><table class="data-table">
-                <thead><tr><th>Trigger</th><th>Event</th><th>Timing</th><th>Statement</th></tr></thead>
-                <tbody><?php foreach ($triggers as $t): ?>
-                  <tr><td><?= esc($t['Trigger']) ?></td><td><?= esc($t['Event']) ?></td><td><?= esc($t['Timing']) ?></td><td style="font-size:11px"><?= esc($t['Statement'] ?? '') ?></td></tr>
-                <?php endforeach; ?></tbody>
-              </table></div>
-            <?php endif; ?>
-          </div>
-        </div>
-        <?php
+        if (!empty($is_view)):
+            ?>
+            <div class="panel">
+              <div class="panel-header">Triggers — <?= esc($selected_table) ?> <span style="font-size:10px;font-weight:600;background:rgba(59,130,246,0.15);color:#60a5fa;padding:2px 6px;border-radius:4px;margin-left:6px;letter-spacing:0.5px;">VIEW</span></div>
+              <div class="panel-body">
+                <p style="color:var(--text-muted);margin:0;">MySQL does not support triggers directly on views. Triggers should be created on the underlying base tables.</p>
+              </div>
+            </div>
+            <?php
+        else:
+            $triggers = get_triggers($conn, $selected_db, $selected_table);
+            ?>
+            <div class="panel">
+              <div class="panel-header">Triggers — <?= esc($selected_table) ?></div>
+              <div class="panel-body" style="padding:0">
+                <?php if (empty($triggers)): ?>
+                  <p style="padding:16px;color:var(--text-muted)">No triggers on this table.</p>
+                <?php else: ?>
+                  <div class="table-wrap" style="border:none"><table class="data-table">
+                    <thead><tr><th>Trigger</th><th>Event</th><th>Timing</th><th>Statement</th></tr></thead>
+                    <tbody><?php foreach ($triggers as $t): ?>
+                      <tr><td><?= esc($t['Trigger']) ?></td><td><?= esc($t['Event']) ?></td><td><?= esc($t['Timing']) ?></td><td style="font-size:11px"><?= esc($t['Statement'] ?? '') ?></td></tr>
+                    <?php endforeach; ?></tbody>
+                  </table></div>
+                <?php endif; ?>
+              </div>
+            </div>
+            <?php
+        endif;
         break;
 
     case 'indexes':
-        $indexes = get_table_indexes($conn, $selected_db, $selected_table);
-        $grouped = [];
-        foreach ($indexes as $idx) {
-            $grouped[$idx['Key_name']][] = $idx;
-        }
-        ?>
-        <div class="panel">
-          <div class="panel-header">Indexes — <?= esc($selected_table) ?></div>
-          <div class="panel-body" style="padding:0">
-            <div class="table-wrap" style="border:none"><table class="data-table">
-              <thead><tr><th>Key Name</th><th>Type</th><th>Unique</th><th>Column</th><th>Cardinality</th></tr></thead>
-              <tbody>
-                <?php foreach ($indexes as $idx): ?>
-                <tr>
-                  <td><?= esc($idx['Key_name']) ?></td>
-                  <td><?= $idx['Key_name'] === 'PRIMARY' ? 'PRIMARY' : ($idx['Index_type'] ?? 'INDEX') ?></td>
-                  <td><?= $idx['Non_unique'] == 0 ? 'Yes' : 'No' ?></td>
-                  <td><?= esc($idx['Column_name']) ?></td>
-                  <td><?= esc($idx['Cardinality'] ?? '') ?></td>
-                </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table></div>
-          </div>
-        </div>
-        <div class="panel">
-          <div class="panel-header">Add Index</div>
-          <div class="panel-body">
-            <form method="POST" action="actions.php">
-              <input type="hidden" name="action" value="add_index">
-              <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
-              <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
-              <div class="form-row">
-                <div class="form-group"><label class="form-label">Index Name</label><input type="text" name="idx_name" class="form-input"></div>
-                <div class="form-group"><label class="form-label">Column</label><select name="idx_col" class="form-select" required><?php foreach ($columns as $c): ?><option value="<?= esc($c['Field']) ?>"><?= esc($c['Field']) ?></option><?php endforeach; ?></select></div>
-                <div class="form-group"><label class="form-label">Type</label><select name="idx_type" class="form-select"><option value="INDEX">Index</option><option value="UNIQUE">Unique</option><option value="FULLTEXT">Fulltext</option><option value="PRIMARY">Primary</option></select></div>
+        if (!empty($is_view)):
+            ?>
+            <div class="panel">
+              <div class="panel-header">Indexes — <?= esc($selected_table) ?> <span style="font-size:10px;font-weight:600;background:rgba(59,130,246,0.15);color:#60a5fa;padding:2px 6px;border-radius:4px;margin-left:6px;letter-spacing:0.5px;">VIEW</span></div>
+              <div class="panel-body">
+                <p style="color:var(--text-muted);margin:0;">Views do not have independent physical indexes in MySQL. Indexes are managed on and utilized through the underlying base tables.</p>
               </div>
-              <button type="submit" class="btn btn-primary">Create Index</button>
-            </form>
-          </div>
-        </div>
-        <?php
+            </div>
+            <?php
+        else:
+            $indexes = get_table_indexes($conn, $selected_db, $selected_table);
+            $grouped = [];
+            foreach ($indexes as $idx) {
+                $grouped[$idx['Key_name']][] = $idx;
+            }
+            ?>
+            <div class="panel">
+              <div class="panel-header">Indexes — <?= esc($selected_table) ?></div>
+              <div class="panel-body" style="padding:0">
+                <div class="table-wrap" style="border:none"><table class="data-table">
+                  <thead><tr><th>Key Name</th><th>Type</th><th>Unique</th><th>Column</th><th>Cardinality</th></tr></thead>
+                  <tbody>
+                    <?php foreach ($indexes as $idx): ?>
+                    <tr>
+                      <td><?= esc($idx['Key_name']) ?></td>
+                      <td><?= $idx['Key_name'] === 'PRIMARY' ? 'PRIMARY' : ($idx['Index_type'] ?? 'INDEX') ?></td>
+                      <td><?= $idx['Non_unique'] == 0 ? 'Yes' : 'No' ?></td>
+                      <td><?= esc($idx['Column_name']) ?></td>
+                      <td><?= esc($idx['Cardinality'] ?? '') ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-header">Add Index</div>
+              <div class="panel-body">
+                <form method="POST" action="actions.php">
+                  <input type="hidden" name="action" value="add_index">
+                  <input type="hidden" name="db" value="<?= esc($selected_db) ?>">
+                  <input type="hidden" name="table" value="<?= esc($selected_table) ?>">
+                  <div class="form-row">
+                    <div class="form-group"><label class="form-label">Index Name</label><input type="text" name="idx_name" class="form-input"></div>
+                    <div class="form-group"><label class="form-label">Column</label><select name="idx_col" class="form-select" required><?php foreach ($columns as $c): ?><option value="<?= esc($c['Field']) ?>"><?= esc($c['Field']) ?></option><?php endforeach; ?></select></div>
+                    <div class="form-group"><label class="form-label">Type</label><select name="idx_type" class="form-select"><option value="INDEX">Index</option><option value="UNIQUE">Unique</option><option value="FULLTEXT">Fulltext</option><option value="PRIMARY">Primary</option></select></div>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Create Index</button>
+                </form>
+              </div>
+            </div>
+            <?php
+        endif;
         break;
 }

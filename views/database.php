@@ -45,19 +45,35 @@ switch ($active_tab) {
                 <thead><tr><th style="width:30px"><input type="checkbox" id="selectAllTables"></th><th>Table</th><th>Rows</th><th>Type</th><th>Size</th><th>Collation</th><th>Actions</th></tr></thead>
                 <tbody>
                   <?php foreach ($tables as $titem):
+                    $is_view_item = in_array($titem, $views ?? [], true);
                     $status = get_table_status($conn, $selected_db, $titem);
                   ?>
                   <tr>
                     <td><input type="checkbox" name="selected_tables[]" class="table-checkbox" value="<?= esc($titem) ?>"></td>
-                    <td><a href="<?= esc(base_url(['db' => $selected_db, 'table' => $titem, 'tab' => 'browse'])) ?>"><?= esc($titem) ?></a></td>
-                    <td><?= esc($status['Rows'] ?? '0') ?></td>
-                    <td><?= esc($status['Engine'] ?? '') ?></td>
-                    <td><?= format_bytes(($status['Data_length'] ?? 0) + ($status['Index_length'] ?? 0)) ?></td>
-                    <td><?= esc($status['Collation'] ?? '') ?></td>
+                    <td>
+                      <a href="<?= esc(base_url(['db' => $selected_db, 'table' => $titem, 'tab' => 'browse'])) ?>" style="display:inline-flex;align-items:center;gap:6px;">
+                        <?php if ($is_view_item): ?>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#60a5fa;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <?php else: ?>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M3 15h18M9 9v12"/></svg>
+                        <?php endif; ?>
+                        <?= esc($titem) ?>
+                      </a>
+                    </td>
+                    <td><?= esc($status['Rows'] ?? ($is_view_item ? '-' : '0')) ?></td>
+                    <td>
+                      <?php if ($is_view_item): ?>
+                        <span class="badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;letter-spacing:0.5px;">VIEW</span>
+                      <?php else: ?>
+                        <?= esc($status['Engine'] ?? '') ?>
+                      <?php endif; ?>
+                    </td>
+                    <td><?= $is_view_item ? '-' : format_bytes(($status['Data_length'] ?? 0) + ($status['Index_length'] ?? 0)) ?></td>
+                    <td><?= esc($status['Collation'] ?? ($is_view_item ? '-' : '')) ?></td>
                     <td class="row-actions">
                       <a href="<?= esc(base_url(['db' => $selected_db, 'table' => $titem, 'tab' => 'browse'])) ?>" class="btn btn-secondary btn-sm">Browse</a>
                       <a href="<?= esc(base_url(['db' => $selected_db, 'table' => $titem, 'tab' => 'structure'])) ?>" class="btn btn-secondary btn-sm">Structure</a>
-                      <button type="submit" form="drop_<?= esc($titem) ?>" class="btn btn-danger btn-sm">Drop</button>
+                      <button type="submit" form="drop_<?= esc($titem) ?>" class="btn btn-danger btn-sm"><?= $is_view_item ? 'Drop View' : 'Drop' ?></button>
                     </td>
                   </tr>
                   <?php endforeach; ?>
