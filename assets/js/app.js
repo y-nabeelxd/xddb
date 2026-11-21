@@ -282,6 +282,283 @@
     });
   }
 
+  // --- History Modal Logic ---
+  const historyModalBtn = document.getElementById('openHistoryModalBtn');
+  const historyModal = document.getElementById('historyModal');
+  const closeHistoryModalBtn = document.getElementById('closeHistoryModalBtn');
+  const historyModalList = document.getElementById('historyModalList');
+  const historyModalBadge = document.getElementById('historyModalBadge');
+  const globalHistoryBadge = document.getElementById('globalHistoryBadge');
+  const historyModalRefreshBtn = document.getElementById('historyModalRefreshBtn');
+  const historyModalExportBtn = document.getElementById('historyModalExportBtn');
+  const historyModalClearBtn = document.getElementById('historyModalClearBtn');
+  const modalAuditSearch = document.getElementById('modalAuditSearch');
+  const modalAuditPills = document.querySelectorAll('#modalAuditPills .audit-pill');
+
+  let cachedHistory = [];
+  let modalFilter = 'all';
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function renderHistoryList() {
+    if (!historyModalList) return;
+    const q = (modalAuditSearch ? modalAuditSearch.value.toLowerCase().trim() : '');
+
+    const filtered = cachedHistory.filter(h => {
+      const rawType = (h.type || 'SQL').toUpperCase();
+      let category = 'sql';
+      if (['UPDATE', 'BULK_UPDATE'].includes(rawType)) category = 'update';
+      else if (['INSERT', 'COPY'].includes(rawType)) category = 'insert';
+      else if (['DELETE', 'BULK_DELETE', 'TRUNCATE'].includes(rawType)) category = 'delete';
+      else if (['CREATE_TABLE', 'DROP_TABLE', 'ALTER_TABLE', 'CREATE_DB', 'DROP_DB', 'CREATE_VIEW', 'DROP_VIEW', 'CREATE', 'DROP', 'ALTER'].includes(rawType)) category = 'schema';
+
+      if (modalFilter !== 'all' && category !== modalFilter) return false;
+
+      if (q) {
+        let hay = [rawType, h.summary || '', h.db || '', h.table || '', h.sql || ''].join(' ');
+        if (h.diff && Array.isArray(h.diff)) {
+          h.diff.forEach(d => {
+            hay += ' ' + (d.field || '') + ' ' + (d.old || '') + ' ' + (d.new || '');
+          });
+        }
+        if (!hay.toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+
+    if (historyModalBadge) historyModalBadge.textContent = cachedHistory.length;
+    if (globalHistoryBadge) globalHistoryBadge.textContent = cachedHistory.length;
+
+    if (filtered.length === 0) {
+      historyModalList.innerHTML = `
+        <div style="text-align:center; padding:32px; color:var(--text-muted);">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 8px; display:block; opacity:0.5;"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          No matching history records found.
+        </div>`;
+      return;
+    }
+
+    historyModalList.innerHTML = filtered.map((h, i) => {
+      const rawType = (h.type || 'SQL').toUpperCase();
+      let badgeClass = 'badge-sql';
+      if (['UPDATE', 'BULK_UPDATE'].includes(rawType)) badgeClass = 'badge-update';
+      else if (['INSERT', 'COPY'].includes(rawType)) badgeClass = 'badge-insert';
+      else if (['DELETE', 'BULK_DELETE', 'TRUNCATE'].includes(rawType)) badgeClass = 'badge-delete';
+      else if (['CREATE_TABLE', 'DROP_TABLE', 'ALTER_TABLE', 'CREATE_DB', 'DROP_DB', 'CREATE_VIEW', 'DROP_VIEW', 'CREATE', 'DROP', 'ALTER'].includes(rawType)) badgeClass = 'badge-schema';
+
+      const diff = h.diff || [];
+      const hasDiff = Array.isArray(diff) && diff.length > 0;
+      const beforeState = h.before || null;
+      const afterState = h.after || null;
+      const hasSnap = (beforeState || afterState);
+      const itemId = 'm_snap_' + (h.id || i);
+
+      let diffHtml = '';
+      if (hasDiff) {
+        diffHtml = `
+          <div class="diff-container" style="margin-top:8px;">
+            <table class="diff-table">
+              <thead>
+                <tr>
+                  <th>Modified Column</th>
+                  <th>Before (Old Value)</th>
+                  <th style="width:24px; text-align:center;"></th>
+                  <th>After (New Value)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${diff.map(d => `
+                  <tr>
+                    <td class="diff-col">${escapeHtml(d.field)}</td>
+                    <td class="diff-old">${d.old === null ? '<span class="diff-null">NULL</span>' : `<del class="diff-val">${escapeHtml(d.old)}</del>`}</td>
+                    <td style="text-align:center; color:var(--text-muted); font-weight:bold;">→</td>
+                    <td class="diff-new">${d.new === null ? '<span class="diff-null">NULL</span>' : `<ins class="diff-val">${escapeHtml(d.new)}</ins>`}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>`;
+      } else if (rawType === 'DELETE' && beforeState) {
+        diffHtml = `
+          <div style="background:rgba(239, 68, 68, 0.08); border:1px solid rgba(239, 68, 68, 0.2); border-radius:6px; padding:8px 12px; font-size:12px; color:#f87171; margin-top:8px;">
+            <strong>Deleted Record State:</strong>
+            <pre style="margin:4px 0 0; font-family:monospace; font-size:11px; white-space:pre-wrap; word-break:break-all;">${escapeHtml(JSON.stringify(beforeState, null, 2))}</pre>
+          </div>`;
+      } else if (['INSERT', 'COPY'].includes(rawType) && afterState) {
+        diffHtml = `
+          <div style="background:rgba(16, 185, 129, 0.08); border:1px solid rgba(16, 185, 129, 0.2); border-radius:6px; padding:8px 12px; font-size:12px; color:#34d399; margin-top:8px;">
+            <strong>Inserted Record State:</strong>
+            <pre style="margin:4px 0 0; font-family:monospace; font-size:11px; white-space:pre-wrap; word-break:break-all;">${escapeHtml(JSON.stringify(afterState, null, 2))}</pre>
+          </div>`;
+      }
+
+      let snapHtml = '';
+      if (hasSnap && hasDiff) {
+        snapHtml = `
+          <div style="margin-top:6px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="window.toggleModalSnap('${itemId}')" style="font-size:11px; padding:2px 7px;">
+              Toggle Full Record Snapshots (Before & After)
+            </button>
+            <div id="${itemId}" class="snapshot-drawer" style="display:none; margin-top:6px;">
+              <div class="snapshot-grid">
+                <div class="snapshot-panel" style="border-top:3px solid #ef4444;">
+                  <div class="snapshot-panel-title" style="color:#ef4444;">Before Mutation</div>
+                  <pre class="snapshot-json">${escapeHtml(JSON.stringify(beforeState, null, 2))}</pre>
+                </div>
+                <div class="snapshot-panel" style="border-top:3px solid #10b981;">
+                  <div class="snapshot-panel-title" style="color:#10b981;">After Mutation</div>
+                  <pre class="snapshot-json">${escapeHtml(JSON.stringify(afterState, null, 2))}</pre>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      return `
+        <div class="audit-card">
+          <div class="audit-card-header" style="padding:8px 12px;">
+            <div class="audit-card-meta">
+              <span class="audit-badge ${badgeClass}">${escapeHtml(rawType)}</span>
+              ${(h.db || h.table) ? `
+                <span class="audit-target">
+                  ${escapeHtml(h.db || '')}${(h.db && h.table) ? '.' : ''}${escapeHtml(h.table || '')}
+                </span>` : ''}
+              ${h.duration !== null && h.duration !== undefined ? `<span style="font-size:11px; color:var(--text-muted);">⚡ ${Number(h.duration).toFixed(2)} ms</span>` : ''}
+              ${h.affected_rows !== null && h.affected_rows !== undefined ? `<span style="font-size:11px; color:var(--text-muted);">${h.affected_rows} row(s)</span>` : ''}
+            </div>
+            <span style="font-size:11px; color:var(--text-muted);">${escapeHtml(h.time || '')}</span>
+          </div>
+          <div class="audit-card-body" style="padding:12px;">
+            ${h.summary ? `<div class="audit-summary" style="font-size:13px;">${escapeHtml(h.summary)}</div>` : ''}
+            ${diffHtml}
+            ${snapHtml}
+            <div class="sql-box" style="margin-top:8px; padding:6px 10px;">
+              <pre class="sql-code" style="font-size:11px;"><code>${escapeHtml(h.sql || '')}</code></pre>
+              <div style="display:flex; gap:4px; flex-shrink:0;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="window.copyModalSql(this, '${escapeHtml(encodeURIComponent(h.sql || ''))}')" style="padding:2px 6px; font-size:11px;">Copy</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="window.replayModalSql('${escapeHtml(encodeURIComponent(h.sql || ''))}', '${escapeHtml(h.db || '')}')" style="padding:2px 6px; font-size:11px;">Replay</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  window.toggleModalSnap = function(id) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+    }
+  };
+
+  window.copyModalSql = function(btn, encodedSql) {
+    const sql = decodeURIComponent(encodedSql);
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(sql).then(() => {
+        const orig = btn.innerText;
+        btn.innerText = 'Copied!';
+        btn.style.color = '#34d399';
+        setTimeout(() => { btn.innerText = orig; btn.style.color = ''; }, 1500);
+      });
+    }
+  };
+
+  window.replayModalSql = function(encodedSql, db) {
+    const sql = decodeURIComponent(encodedSql);
+    sessionStorage.setItem('replay_sql', sql);
+    let target = 'dashboard.php?tab=sql';
+    if (db) target += '&db=' + encodeURIComponent(db);
+    window.location.href = target;
+  };
+
+  function fetchHistory() {
+    fetch('api.php?action=get_history')
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) {
+          cachedHistory = res.history || [];
+          renderHistoryList();
+        }
+      })
+      .catch(err => console.error('Failed to load history:', err));
+  }
+
+  if (historyModalBtn && historyModal) {
+    historyModalBtn.addEventListener('click', function() {
+      historyModal.removeAttribute('hidden');
+      document.body.classList.add('guide-open');
+      fetchHistory();
+    });
+
+    if (closeHistoryModalBtn) {
+      closeHistoryModalBtn.addEventListener('click', function() {
+        historyModal.setAttribute('hidden', '');
+        document.body.classList.remove('guide-open');
+      });
+    }
+
+    historyModal.addEventListener('click', function(e) {
+      if (e.target === historyModal) {
+        historyModal.setAttribute('hidden', '');
+        document.body.classList.remove('guide-open');
+      }
+    });
+
+    if (historyModalRefreshBtn) {
+      historyModalRefreshBtn.addEventListener('click', fetchHistory);
+    }
+
+    if (historyModalExportBtn) {
+      historyModalExportBtn.addEventListener('click', function() {
+        const blob = new Blob([JSON.stringify(cachedHistory, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'xddb-audit-log-' + (new Date().toISOString().slice(0, 10)) + '.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    if (historyModalClearBtn) {
+      historyModalClearBtn.addEventListener('click', function() {
+        if (!confirm('Are you sure you want to clear all history?')) return;
+        fetch('api.php?action=clear_history', { method: 'POST' })
+          .then(r => r.json())
+          .then(res => {
+            if (res.success) {
+              cachedHistory = [];
+              renderHistoryList();
+            }
+          });
+      });
+    }
+
+    modalAuditPills.forEach(pill => {
+      pill.addEventListener('click', function() {
+        modalAuditPills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        modalFilter = pill.getAttribute('data-filter') || 'all';
+        renderHistoryList();
+      });
+    });
+
+    if (modalAuditSearch) {
+      modalAuditSearch.addEventListener('input', renderHistoryList);
+    }
+  }
+
   // --- Snippets Logic ---
   const snippetsBtn = document.getElementById('openSnippetsBtn');
   const snippetsModal = document.getElementById('snippetsModal');
@@ -481,6 +758,12 @@
               cell.textContent = newVal.length > 50 ? newVal.substring(0, 50) + '...' : newVal;
               cell.classList.add('cell-saved-flash');
               setTimeout(() => cell.classList.remove('cell-saved-flash'), 600);
+
+              const gBadge = document.getElementById('globalHistoryBadge');
+              if (gBadge) {
+                const count = parseInt(gBadge.textContent || '0', 10);
+                gBadge.textContent = count + 1;
+              }
             } else {
               alert('Error updating cell: ' + (data.error || 'Unknown error'));
               cancelEdit();

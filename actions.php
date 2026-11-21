@@ -363,8 +363,16 @@ switch ($action) {
         $collation = $conn->real_escape_string($_POST['collation'] ?? 'utf8mb4_unicode_ci');
         if ($name) {
             $sql = "CREATE DATABASE `$name` CHARACTER SET $charset COLLATE $collation";
+            $start_time = microtime(true);
             if ($conn->query($sql)) {
-                add_query_history($sql);
+                $dur = (microtime(true) - $start_time) * 1000;
+                add_query_history($sql, $dur, [
+                    'type' => 'CREATE_DB',
+                    'db' => $name,
+                    'summary' => "Created database `$name` with charset $charset / $collation",
+                    'after' => ['database' => $name, 'charset' => $charset, 'collation' => $collation],
+                    'status' => 'success'
+                ]);
                 flash_message('success', "Database '$name' created.");
                 $redirect_params['db'] = $name;
                 $redirect_params['tab'] = 'structure';
@@ -376,13 +384,24 @@ switch ($action) {
 
     case 'drop_database':
         $name = $conn->real_escape_string($db);
-        if ($name && $conn->query("DROP DATABASE `$name`")) {
-            add_query_history("DROP DATABASE `$name`");
-            flash_message('success', "Database '$name' dropped.");
-            unset($redirect_params['db'], $redirect_params['table']);
-            $redirect_params['tab'] = 'databases';
-        } else {
-            flash_message('error', $conn->error);
+        if ($name) {
+            $sql = "DROP DATABASE `$name`";
+            $start_time = microtime(true);
+            if ($conn->query($sql)) {
+                $dur = (microtime(true) - $start_time) * 1000;
+                add_query_history($sql, $dur, [
+                    'type' => 'DROP_DB',
+                    'db' => $name,
+                    'summary' => "Dropped database `$name` and all contained tables",
+                    'before' => ['database' => $name],
+                    'status' => 'success'
+                ]);
+                flash_message('success', "Database '$name' dropped.");
+                unset($redirect_params['db'], $redirect_params['table']);
+                $redirect_params['tab'] = 'databases';
+            } else {
+                flash_message('error', $conn->error);
+            }
         }
         break;
 
@@ -417,8 +436,17 @@ switch ($action) {
         }
         if ($tname && count($definitions)) {
             $sql = "CREATE TABLE `$tname` (" . implode(', ', $definitions) . ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+            $start_time = microtime(true);
             if ($conn->query($sql)) {
-                add_query_history($sql);
+                $dur = (microtime(true) - $start_time) * 1000;
+                add_query_history($sql, $dur, [
+                    'type' => 'CREATE_TABLE',
+                    'db' => $db,
+                    'table' => $tname,
+                    'summary' => "Created table `$tname` with " . count($definitions) . " column(s)",
+                    'after' => ['columns' => $definitions],
+                    'status' => 'success'
+                ]);
                 flash_message('success', "Table '$tname' created.");
                 $redirect_params['table'] = $tname;
                 $redirect_params['tab'] = 'structure';
@@ -433,18 +461,35 @@ switch ($action) {
         if ($table) {
             $is_view_entity = is_view($conn, $db, $table);
             $drop_sql = $is_view_entity ? "DROP VIEW `$table`" : "DROP TABLE `$table`";
-
+            $start_time = microtime(true);
             if ($conn->query($drop_sql)) {
-                add_query_history($drop_sql);
+                $dur = (microtime(true) - $start_time) * 1000;
                 $entity_label = $is_view_entity ? "View" : "Table";
+                add_query_history($drop_sql, $dur, [
+                    'type' => $is_view_entity ? 'DROP_VIEW' : 'DROP_TABLE',
+                    'db' => $db,
+                    'table' => $table,
+                    'summary' => "Dropped $entity_label `$table`",
+                    'before' => ['entity' => $table, 'type' => $entity_label],
+                    'status' => 'success'
+                ]);
                 flash_message('success', "$entity_label '$table' dropped.");
                 unset($redirect_params['table']);
                 $redirect_params['tab'] = 'structure';
             } else {
                 // If DROP TABLE failed because the entity is actually a VIEW (MySQL errno 1051)
                 if ($conn->errno == 1051 && !$is_view_entity) {
+                    $start_time = microtime(true);
                     if ($conn->query("DROP VIEW `$table`")) {
-                        add_query_history("DROP VIEW `$table`");
+                        $dur = (microtime(true) - $start_time) * 1000;
+                        add_query_history("DROP VIEW `$table`", $dur, [
+                            'type' => 'DROP_VIEW',
+                            'db' => $db,
+                            'table' => $table,
+                            'summary' => "Dropped View `$table`",
+                            'before' => ['entity' => $table, 'type' => 'View'],
+                            'status' => 'success'
+                        ]);
                         flash_message('success', "View '$table' dropped.");
                         unset($redirect_params['table']);
                         $redirect_params['tab'] = 'structure';
@@ -476,14 +521,30 @@ switch ($action) {
                 }
                 
                 if ($sql) {
+                    $start_time = microtime(true);
                     if ($conn->query($sql)) {
-                        add_query_history($sql);
+                        $dur = (microtime(true) - $start_time) * 1000;
+                        add_query_history($sql, $dur, [
+                            'type' => $bulk_action === 'drop' ? ($is_v ? 'DROP_VIEW' : 'DROP_TABLE') : 'TRUNCATE',
+                            'db' => $db,
+                            'table' => $t,
+                            'summary' => ($bulk_action === 'drop' ? "Dropped " . ($is_v ? "view" : "table") : "Truncated (emptied) table") . " `$t`",
+                            'status' => 'success'
+                        ]);
                         $success_count++;
                     } else {
                         // Fallback attempt for views on drop
                         if ($bulk_action === 'drop' && $conn->errno == 1051) {
+                            $start_time = microtime(true);
                             if ($conn->query("DROP VIEW `$t`")) {
-                                add_query_history("DROP VIEW `$t`");
+                                $dur = (microtime(true) - $start_time) * 1000;
+                                add_query_history("DROP VIEW `$t`", $dur, [
+                                    'type' => 'DROP_VIEW',
+                                    'db' => $db,
+                                    'table' => $t,
+                                    'summary' => "Dropped view `$t`",
+                                    'status' => 'success'
+                                ]);
                                 $success_count++;
                                 continue;
                             }
@@ -508,11 +569,26 @@ switch ($action) {
     case 'rename_table':
         $conn->select_db($db);
         $new_name = $conn->real_escape_string(trim($_POST['new_name'] ?? ''));
-        if ($table && $new_name && $conn->query("RENAME TABLE `$table` TO `$new_name`")) {
-            flash_message('success', "Table renamed to '$new_name'.");
-            $redirect_params['table'] = $new_name;
-        } else {
-            flash_message('error', $conn->error);
+        if ($table && $new_name) {
+            $sql = "RENAME TABLE `$table` TO `$new_name`";
+            $start_time = microtime(true);
+            if ($conn->query($sql)) {
+                $dur = (microtime(true) - $start_time) * 1000;
+                add_query_history($sql, $dur, [
+                    'type' => 'ALTER_TABLE',
+                    'db' => $db,
+                    'table' => $new_name,
+                    'summary' => "Renamed table `$table` to `$new_name`",
+                    'diff' => [['field' => 'table_name', 'old' => $table, 'new' => $new_name]],
+                    'before' => ['table' => $table],
+                    'after' => ['table' => $new_name],
+                    'status' => 'success'
+                ]);
+                flash_message('success', "Table renamed to '$new_name'.");
+                $redirect_params['table'] = $new_name;
+            } else {
+                flash_message('error', $conn->error);
+            }
         }
         break;
 
@@ -522,10 +598,23 @@ switch ($action) {
         $target_db = $conn->real_escape_string($_POST['target_db'] ?? $db);
         if ($table && $new_name) {
             $sql = "CREATE TABLE `$target_db`.`$new_name` LIKE `$db`.`$table`";
+            $start_time = microtime(true);
             if ($conn->query($sql)) {
+                $copied_data = false;
                 if (isset($_POST['copy_data'])) {
                     $conn->query("INSERT INTO `$target_db`.`$new_name` SELECT * FROM `$db`.`$table`");
+                    $copied_data = true;
                 }
+                $dur = (microtime(true) - $start_time) * 1000;
+                add_query_history($sql, $dur, [
+                    'type' => 'COPY_TABLE',
+                    'db' => $target_db,
+                    'table' => $new_name,
+                    'summary' => "Cloned table `$db`.`$table` to `$target_db`.`$new_name`" . ($copied_data ? " (structure and data)" : " (structure only)"),
+                    'before' => ['source_db' => $db, 'source_table' => $table],
+                    'after' => ['target_db' => $target_db, 'target_table' => $new_name, 'with_data' => $copied_data],
+                    'status' => 'success'
+                ]);
                 flash_message('success', "Table copied to '$new_name'.");
             } else {
                 flash_message('error', $conn->error);
@@ -552,8 +641,17 @@ switch ($action) {
         if ($after) {
             $sql .= " AFTER `" . $conn->real_escape_string($after) . "`";
         }
+        $start_time = microtime(true);
         if ($conn->query($sql)) {
-            add_query_history($sql);
+            $dur = (microtime(true) - $start_time) * 1000;
+            add_query_history($sql, $dur, [
+                'type' => 'ALTER_TABLE',
+                'db' => $db,
+                'table' => $table,
+                'summary' => "Added column `$col_name` ($col_type" . ($col_length ? "($col_length)" : "") . ") to `$table`",
+                'after' => ['column' => $col_name, 'type' => $col_type, 'length' => $col_length, 'null' => $col_null, 'default' => $col_default],
+                'status' => 'success'
+            ]);
             flash_message('success', "Column '$col_name' added.");
         } else {
             flash_message('error', $conn->error);
@@ -564,10 +662,23 @@ switch ($action) {
     case 'drop_column':
         $conn->select_db($db);
         $col = $conn->real_escape_string($_POST['col_name'] ?? '');
-        if ($col && $conn->query("ALTER TABLE `$table` DROP COLUMN `$col`")) {
-            flash_message('success', "Column '$col' dropped.");
-        } else {
-            flash_message('error', $conn->error);
+        if ($col) {
+            $sql = "ALTER TABLE `$table` DROP COLUMN `$col`";
+            $start_time = microtime(true);
+            if ($conn->query($sql)) {
+                $dur = (microtime(true) - $start_time) * 1000;
+                add_query_history($sql, $dur, [
+                    'type' => 'ALTER_TABLE',
+                    'db' => $db,
+                    'table' => $table,
+                    'summary' => "Dropped column `$col` from table `$table`",
+                    'before' => ['column' => $col],
+                    'status' => 'success'
+                ]);
+                flash_message('success', "Column '$col' dropped.");
+            } else {
+                flash_message('error', $conn->error);
+            }
         }
         $redirect_params['tab'] = 'structure';
         break;
@@ -656,18 +767,37 @@ switch ($action) {
         $fields = $_POST['fields'] ?? [];
         $cols = [];
         $vals = [];
+        $after_row = [];
         foreach ($fields as $col => $val) {
-            $cols[] = '`' . $conn->real_escape_string($col) . '`';
+            $cols[] = '`' . str_replace('`', '``', $col) . '`';
             if ($val === '' && isset($_POST['nulls'][$col])) {
                 $vals[] = 'NULL';
+                $after_row[$col] = null;
             } else {
                 $vals[] = "'" . $conn->real_escape_string($val) . "'";
+                $after_row[$col] = $val;
             }
         }
         if (count($cols)) {
-            $sql = "INSERT INTO `$table` (" . implode(', ', $cols) . ") VALUES (" . implode(', ', $vals) . ")";
+            $sql = "INSERT INTO `" . str_replace('`', '``', $table) . "` (" . implode(', ', $cols) . ") VALUES (" . implode(', ', $vals) . ")";
+            $start_time = microtime(true);
             if ($conn->query($sql)) {
-                add_query_history($sql);
+                $dur = (microtime(true) - $start_time) * 1000;
+                $ins_id = $conn->insert_id;
+                if ($ins_id && !empty($pk_col) && empty($after_row[$pk_col])) {
+                    $after_row[$pk_col] = $ins_id;
+                }
+                add_query_history($sql, $dur, [
+                    'type' => 'INSERT',
+                    'db' => $db,
+                    'table' => $table,
+                    'summary' => "Inserted new row into `$table`" . ($ins_id ? " (ID: $ins_id)" : ""),
+                    'before' => null,
+                    'after' => $after_row,
+                    'diff' => array_map(function($k, $v) { return ['field' => $k, 'old' => null, 'new' => $v]; }, array_keys($after_row), array_values($after_row)),
+                    'affected_rows' => 1,
+                    'status' => 'success'
+                ]);
                 flash_message('success', 'Row inserted successfully.');
                 $redirect_params['tab'] = 'browse';
             } else {
@@ -681,19 +811,50 @@ switch ($action) {
         $fields = $_POST['fields'] ?? [];
         $pk_col = $_POST['pk_col'] ?? '';
         $pk_val = $_POST['pk_val'] ?? '';
+
+        $before_row = null;
+        if ($pk_col && $pk_val) {
+            $b_res = $conn->query("SELECT * FROM `" . str_replace('`', '``', $table) . "` WHERE `" . str_replace('`', '``', $pk_col) . "` = '" . $conn->real_escape_string($pk_val) . "'");
+            if ($b_res) $before_row = $b_res->fetch_assoc();
+        }
+
         $sets = [];
+        $after_row = $before_row ?: [];
+        $diff = [];
         foreach ($fields as $col => $val) {
             if ($col === $pk_col) continue;
-            if ($val === '' && isset($_POST['nulls'][$col])) {
-                $sets[] = '`' . $conn->real_escape_string($col) . '` = NULL';
+            $new_val = ($val === '' && isset($_POST['nulls'][$col])) ? null : $val;
+            $old_val = $before_row[$col] ?? null;
+            $after_row[$col] = $new_val;
+            if ($new_val === null) {
+                $sets[] = '`' . str_replace('`', '``', $col) . '` = NULL';
             } else {
-                $sets[] = '`' . $conn->real_escape_string($col) . '` = \'' . $conn->real_escape_string($val) . '\'';
+                $sets[] = '`' . str_replace('`', '``', $col) . '` = \'' . $conn->real_escape_string($val) . '\'';
+            }
+            if ($old_val != $new_val) {
+                $diff[] = [
+                    'field' => $col,
+                    'old' => $old_val,
+                    'new' => $new_val
+                ];
             }
         }
         if (count($sets) && $pk_col) {
-            $sql = "UPDATE `$table` SET " . implode(', ', $sets) . " WHERE `" . $conn->real_escape_string($pk_col) . "` = '" . $conn->real_escape_string($pk_val) . "'";
+            $sql = "UPDATE `" . str_replace('`', '``', $table) . "` SET " . implode(', ', $sets) . " WHERE `" . str_replace('`', '``', $pk_col) . "` = '" . $conn->real_escape_string($pk_val) . "'";
+            $start_time = microtime(true);
             if ($conn->query($sql)) {
-                add_query_history($sql);
+                $dur = (microtime(true) - $start_time) * 1000;
+                add_query_history($sql, $dur, [
+                    'type' => 'UPDATE',
+                    'db' => $db,
+                    'table' => $table,
+                    'summary' => "Updated row in `$table` (`$pk_col` = '$pk_val')" . (count($diff) ? " — " . count($diff) . " field(s) modified" : ""),
+                    'diff' => $diff,
+                    'before' => $before_row,
+                    'after' => $after_row,
+                    'affected_rows' => 1,
+                    'status' => 'success'
+                ]);
                 flash_message('success', 'Row updated successfully.');
             } else {
                 flash_message('error', $conn->error);
@@ -707,9 +868,25 @@ switch ($action) {
         $pk_col = $_POST['pk_col'] ?? '';
         $pk_val = $_POST['pk_val'] ?? '';
         if ($pk_col) {
-            $sql = "DELETE FROM `$table` WHERE `" . $conn->real_escape_string($pk_col) . "` = '" . $conn->real_escape_string($pk_val) . "'";
+            $before_row = null;
+            $b_res = $conn->query("SELECT * FROM `" . str_replace('`', '``', $table) . "` WHERE `" . str_replace('`', '``', $pk_col) . "` = '" . $conn->real_escape_string($pk_val) . "'");
+            if ($b_res) $before_row = $b_res->fetch_assoc();
+
+            $sql = "DELETE FROM `" . str_replace('`', '``', $table) . "` WHERE `" . str_replace('`', '``', $pk_col) . "` = '" . $conn->real_escape_string($pk_val) . "'";
+            $start_time = microtime(true);
             if ($conn->query($sql)) {
-                add_query_history($sql);
+                $dur = (microtime(true) - $start_time) * 1000;
+                add_query_history($sql, $dur, [
+                    'type' => 'DELETE',
+                    'db' => $db,
+                    'table' => $table,
+                    'summary' => "Deleted row from `$table` (`$pk_col` = '$pk_val')",
+                    'before' => $before_row,
+                    'after' => null,
+                    'diff' => $before_row ? array_map(function($k, $v) { return ['field' => $k, 'old' => $v, 'new' => null]; }, array_keys($before_row), array_values($before_row)) : [],
+                    'affected_rows' => 1,
+                    'status' => 'success'
+                ]);
                 flash_message('success', 'Row deleted.');
             } else {
                 flash_message('error', $conn->error);
@@ -729,10 +906,27 @@ switch ($action) {
                 $escaped_rows = array_map(function($val) use ($conn) {
                     return "'" . $conn->real_escape_string($val) . "'";
                 }, $selected_rows);
+
+                $deleted_rows_list = [];
+                $d_res = $conn->query("SELECT * FROM `" . str_replace('`', '``', $table) . "` WHERE `" . str_replace('`', '``', $pk_col) . "` IN (" . implode(',', $escaped_rows) . ")");
+                if ($d_res) {
+                    while ($r = $d_res->fetch_assoc()) $deleted_rows_list[] = $r;
+                }
                 
-                $sql = "DELETE FROM `$table` WHERE `" . $conn->real_escape_string($pk_col) . "` IN (" . implode(',', $escaped_rows) . ")";
+                $sql = "DELETE FROM `" . str_replace('`', '``', $table) . "` WHERE `" . str_replace('`', '``', $pk_col) . "` IN (" . implode(',', $escaped_rows) . ")";
+                $start_time = microtime(true);
                 if ($conn->query($sql)) {
-                    add_query_history($sql);
+                    $dur = (microtime(true) - $start_time) * 1000;
+                    add_query_history($sql, $dur, [
+                        'type' => 'DELETE',
+                        'db' => $db,
+                        'table' => $table,
+                        'summary' => "Bulk deleted " . count($deleted_rows_list) . " row(s) from `$table`",
+                        'before' => $deleted_rows_list,
+                        'after' => null,
+                        'affected_rows' => count($deleted_rows_list),
+                        'status' => 'success'
+                    ]);
                     flash_message('success', count($selected_rows) . ' row(s) deleted.');
                 } else {
                     flash_message('error', $conn->error);
@@ -752,31 +946,46 @@ switch ($action) {
                 }, $selected_rows);
 
                 $pk_is_ai = false;
-                $col_check = $conn->query("SHOW COLUMNS FROM `$table` LIKE '" . $conn->real_escape_string($pk_col) . "'");
+                $col_check = $conn->query("SHOW COLUMNS FROM `" . str_replace('`', '``', $table) . "` LIKE '" . $conn->real_escape_string($pk_col) . "'");
                 if ($col_check && $c_info = $col_check->fetch_assoc()) {
                     $pk_is_ai = stripos($c_info['Extra'] ?? '', 'auto_increment') !== false;
                 }
 
-                $res = $conn->query("SELECT * FROM `$table` WHERE `" . $conn->real_escape_string($pk_col) . "` IN (" . implode(',', $escaped_rows) . ")");
+                $res = $conn->query("SELECT * FROM `" . str_replace('`', '``', $table) . "` WHERE `" . str_replace('`', '``', $pk_col) . "` IN (" . implode(',', $escaped_rows) . ")");
                 $copied_count = 0;
                 $error_msg = null;
                 if ($res) {
                     while ($row = $res->fetch_assoc()) {
+                        $source_row = $row;
+                        $copy_row_data = $row;
                         if ($pk_is_ai) {
-                            unset($row[$pk_col]);
+                            unset($copy_row_data[$pk_col]);
                         } else {
-                            $row[$pk_col] = is_numeric($row[$pk_col]) ? ($row[$pk_col] + 1000) : ($row[$pk_col] . '_copy');
+                            $copy_row_data[$pk_col] = is_numeric($copy_row_data[$pk_col]) ? ($copy_row_data[$pk_col] + 1000) : ($copy_row_data[$pk_col] . '_copy');
                         }
                         $cols = [];
                         $vals = [];
-                        foreach ($row as $k => $v) {
+                        foreach ($copy_row_data as $k => $v) {
                             $cols[] = '`' . str_replace('`', '``', $k) . '`';
                             $vals[] = $v === null ? 'NULL' : "'" . $conn->real_escape_string($v) . "'";
                         }
                         $sql = "INSERT INTO `" . str_replace('`', '``', $table) . "` (" . implode(', ', $cols) . ") VALUES (" . implode(', ', $vals) . ")";
+                        $start_time = microtime(true);
                         if ($conn->query($sql)) {
+                            $dur = (microtime(true) - $start_time) * 1000;
                             $copied_count++;
-                            add_query_history($sql);
+                            $ins_id = $conn->insert_id;
+                            if ($ins_id && $pk_is_ai) $copy_row_data[$pk_col] = $ins_id;
+                            add_query_history($sql, $dur, [
+                                'type' => 'COPY',
+                                'db' => $db,
+                                'table' => $table,
+                                'summary' => "Duplicated row in `$table` (Source `$pk_col`: {$source_row[$pk_col]})" . ($ins_id ? " -> New ID: $ins_id" : ""),
+                                'before' => $source_row,
+                                'after' => $copy_row_data,
+                                'affected_rows' => 1,
+                                'status' => 'success'
+                            ]);
                         } else {
                             $error_msg = $conn->error;
                         }
@@ -813,30 +1022,68 @@ switch ($action) {
             break;
         }
 
+        // Fetch before state for all affected rows
+        $pks = array_keys($rows_data);
+        $escaped_pks = array_map(function($v) use ($conn) { return "'" . $conn->real_escape_string($v) . "'"; }, $pks);
+        $b_res = $conn->query("SELECT * FROM `" . str_replace('`', '``', $table) . "` WHERE `" . str_replace('`', '``', $pk_col) . "` IN (" . implode(',', $escaped_pks) . ")");
+        $before_map = [];
+        if ($b_res) {
+            while ($r = $b_res->fetch_assoc()) {
+                $before_map[$r[$pk_col]] = $r;
+            }
+        }
+
         $updated_count = 0;
         $error_msg = null;
 
         foreach ($rows_data as $pk_val => $row_info) {
             $fields = $row_info['fields'] ?? [];
             $nulls = $row_info['nulls'] ?? [];
+            $before_row = $before_map[$pk_val] ?? null;
+            $after_row = $before_row ?: [];
+            $diff = [];
 
             $set_clauses = [];
             foreach ($fields as $field_name => $field_val) {
                 if ($field_name === $pk_col) continue;
 
+                $new_val = !empty($nulls[$field_name]) ? null : $field_val;
+                $old_val = $before_row[$field_name] ?? null;
+                $after_row[$field_name] = $new_val;
+
                 $escaped_field = '`' . str_replace('`', '``', $field_name) . '`';
-                if (!empty($nulls[$field_name])) {
+                if ($new_val === null) {
                     $set_clauses[] = "$escaped_field = NULL";
                 } else {
                     $set_clauses[] = "$escaped_field = '" . $conn->real_escape_string($field_val) . "'";
+                }
+
+                if ($old_val != $new_val) {
+                    $diff[] = [
+                        'field' => $field_name,
+                        'old' => $old_val,
+                        'new' => $new_val
+                    ];
                 }
             }
 
             if (!empty($set_clauses)) {
                 $sql = "UPDATE `" . str_replace('`', '``', $table) . "` SET " . implode(', ', $set_clauses) . " WHERE `" . str_replace('`', '``', $pk_col) . "` = '" . $conn->real_escape_string($pk_val) . "'";
+                $start_time = microtime(true);
                 if ($conn->query($sql)) {
+                    $dur = (microtime(true) - $start_time) * 1000;
                     $updated_count++;
-                    add_query_history($sql);
+                    add_query_history($sql, $dur, [
+                        'type' => 'UPDATE',
+                        'db' => $db,
+                        'table' => $table,
+                        'summary' => "Bulk updated row in `$table` (`$pk_col` = '$pk_val')" . (count($diff) ? " — " . count($diff) . " field(s) modified" : ""),
+                        'diff' => $diff,
+                        'before' => $before_row,
+                        'after' => $after_row,
+                        'affected_rows' => 1,
+                        'status' => 'success'
+                    ]);
                 } else {
                     $error_msg = $conn->error;
                 }
@@ -859,8 +1106,18 @@ switch ($action) {
         if ($view_name) {
             $view_esc = $conn->real_escape_string($view_name);
             $sql = "CREATE VIEW `$view_esc` AS SELECT * FROM `$table`";
+            $start_time = microtime(true);
             if ($conn->query($sql)) {
-                add_query_history($sql);
+                $dur = (microtime(true) - $start_time) * 1000;
+                add_query_history($sql, $dur, [
+                    'type' => 'CREATE_VIEW',
+                    'db' => $db,
+                    'table' => $view_name,
+                    'summary' => "Created view `$view_name` based on SELECT * FROM `$table`",
+                    'before' => ['source_table' => $table],
+                    'after' => ['view_name' => $view_name],
+                    'status' => 'success'
+                ]);
                 flash_message('success', "View '$view_name' created successfully.");
                 $redirect_params['table'] = $view_name;
                 $redirect_params['tab'] = 'browse';
@@ -875,17 +1132,33 @@ switch ($action) {
         $pk_col = $_POST['pk_col'] ?? '';
         $pk_val = $_POST['pk_val'] ?? '';
         if ($pk_col) {
-            $result = $conn->query("SELECT * FROM `$table` WHERE `" . $conn->real_escape_string($pk_col) . "` = '" . $conn->real_escape_string($pk_val) . "'");
+            $result = $conn->query("SELECT * FROM `" . str_replace('`', '``', $table) . "` WHERE `" . str_replace('`', '``', $pk_col) . "` = '" . $conn->real_escape_string($pk_val) . "'");
             if ($result && $row = $result->fetch_assoc()) {
+                $source_row = $row;
                 unset($row[$pk_col]);
                 $cols = [];
                 $vals = [];
                 foreach ($row as $k => $v) {
-                    $cols[] = '`' . $conn->real_escape_string($k) . '`';
+                    $cols[] = '`' . str_replace('`', '``', $k) . '`';
                     $vals[] = $v === null ? 'NULL' : "'" . $conn->real_escape_string($v) . "'";
                 }
-                $sql = "INSERT INTO `$table` (" . implode(', ', $cols) . ") VALUES (" . implode(', ', $vals) . ")";
+                $sql = "INSERT INTO `" . str_replace('`', '``', $table) . "` (" . implode(', ', $cols) . ") VALUES (" . implode(', ', $vals) . ")";
+                $start_time = microtime(true);
                 if ($conn->query($sql)) {
+                    $dur = (microtime(true) - $start_time) * 1000;
+                    $ins_id = $conn->insert_id;
+                    $after_row = $row;
+                    if ($ins_id) $after_row[$pk_col] = $ins_id;
+                    add_query_history($sql, $dur, [
+                        'type' => 'COPY',
+                        'db' => $db,
+                        'table' => $table,
+                        'summary' => "Duplicated row in `$table` (Source `$pk_col`: $pk_val)" . ($ins_id ? " -> New ID: $ins_id" : ""),
+                        'before' => $source_row,
+                        'after' => $after_row,
+                        'affected_rows' => 1,
+                        'status' => 'success'
+                    ]);
                     flash_message('success', 'Row copied.');
                 } else {
                     flash_message('error', $conn->error);
@@ -895,13 +1168,18 @@ switch ($action) {
         $redirect_params['tab'] = 'browse';
         break;
 
+    case 'clear_query_history':
+        $_SESSION['query_history'] = [];
+        flash_message('success', 'Query and modification history cleared.');
+        $redirect_params['tab'] = 'history';
+        break;
+
     case 'run_sql':
         $sql = $_POST['sql_query'] ?? '';
         if ($db) {
             $conn->select_db($db);
         }
         if ($sql) {
-            add_query_history($sql);
             $queries = array_filter(array_map('trim', explode(';', $sql)));
             $last_result = null;
             $messages = [];
@@ -916,11 +1194,25 @@ switch ($action) {
                         $use_detected = trim($m[1], '`');
                         $conn->select_db($use_detected);
                         $messages[] = 'Database changed to ' . $use_detected . '.';
+                        add_query_history($q, 0.1, [
+                            'type' => 'SQL',
+                            'db' => $use_detected,
+                            'summary' => "Switched active database to `$use_detected`",
+                            'status' => 'success'
+                        ]);
                     }
                     continue;
                 }
                 $res = run_query($conn, $q);
+                $q_dur = isset($res['duration']) ? ($res['duration'] * 1000) : null;
                 if (!$res['success']) {
+                    add_query_history($q, $q_dur, [
+                        'type' => 'SQL',
+                        'db' => $db ?: $use_detected,
+                        'summary' => "Query execution failed",
+                        'status' => 'error',
+                        'error' => $res['error']
+                    ]);
                     flash_message('error', $res['error'], true);
                     $_SESSION['last_sql'] = $sql;
                     if ($use_detected) $redirect_params['db'] = $use_detected;
@@ -928,8 +1220,23 @@ switch ($action) {
                 }
                 if ($res['result'] instanceof mysqli_result) {
                     $last_result = $res['result'];
+                    $num_r = $last_result->num_rows;
+                    add_query_history($q, $q_dur, [
+                        'type' => 'SELECT',
+                        'db' => $db ?: $use_detected,
+                        'summary' => "Executed query returning $num_r row(s)",
+                        'affected_rows' => $num_r,
+                        'status' => 'success'
+                    ]);
                 } else {
                     $messages[] = $res['affected'] . ' row(s) affected.';
+                    add_query_history($q, $q_dur, [
+                        'type' => 'SQL',
+                        'db' => $db ?: $use_detected,
+                        'summary' => "Executed SQL statement affecting {$res['affected']} row(s)",
+                        'affected_rows' => $res['affected'],
+                        'status' => 'success'
+                    ]);
                 }
             }
             if ($use_detected) {
@@ -1356,7 +1663,17 @@ switch ($action) {
             $add = $type_map[$idx_type] ?? 'ADD INDEX';
             $name_part = $idx_type === 'PRIMARY' ? "(`$idx_col`)" : ($idx_name ? " `$idx_name` (`$idx_col`)" : " (`$idx_col`)");
             $sql = "ALTER TABLE `$table` $add$name_part";
+            $start_time = microtime(true);
             if ($conn->query($sql)) {
+                $dur = (microtime(true) - $start_time) * 1000;
+                add_query_history($sql, $dur, [
+                    'type' => 'ALTER_TABLE',
+                    'db' => $db,
+                    'table' => $table,
+                    'summary' => "Added $idx_type index on column `$idx_col` in table `$table`",
+                    'after' => ['index_name' => $idx_name, 'column' => $idx_col, 'type' => $idx_type],
+                    'status' => 'success'
+                ]);
                 flash_message('success', 'Index added.');
             } else {
                 flash_message('error', $conn->error);

@@ -69,7 +69,9 @@ function check_for_updates() {
     }
     return false;
 }
-mysqli_report(MYSQLI_REPORT_OFF);
+if (function_exists('mysqli_report')) {
+    mysqli_report(MYSQLI_REPORT_OFF);
+}
 
 function esc($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -211,16 +213,36 @@ function run_query($conn, $sql) {
     ];
 }
 
-function add_query_history($sql, $duration = null) {
+function add_query_history($sql, $duration = null, $meta = []) {
     if (!isset($_SESSION['query_history'])) {
         $_SESSION['query_history'] = [];
     }
-    array_unshift($_SESSION['query_history'], [
+
+    $trimmed = trim((string)$sql);
+    $type = $meta['type'] ?? 'SQL';
+    if ($type === 'SQL' && preg_match('/^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TRUNCATE|RENAME|SHOW|DESCRIBE|EXPLAIN)/i', $trimmed, $m)) {
+        $type = strtoupper($m[1]);
+    }
+
+    $entry = [
+        'id' => uniqid('qh_', true),
         'sql' => $sql,
         'time' => date('Y-m-d H:i:s'),
-        'duration' => $duration
-    ]);
-    $_SESSION['query_history'] = array_slice($_SESSION['query_history'], 0, 50);
+        'duration' => $duration !== null ? round((float)$duration, 2) : null,
+        'type' => $type,
+        'db' => $meta['db'] ?? ($_SESSION['db'] ?? ''),
+        'table' => $meta['table'] ?? '',
+        'summary' => $meta['summary'] ?? '',
+        'diff' => $meta['diff'] ?? [],
+        'before' => $meta['before'] ?? null,
+        'after' => $meta['after'] ?? null,
+        'affected_rows' => $meta['affected_rows'] ?? null,
+        'status' => $meta['status'] ?? 'success',
+        'error' => $meta['error'] ?? null
+    ];
+
+    array_unshift($_SESSION['query_history'], $entry);
+    $_SESSION['query_history'] = array_slice($_SESSION['query_history'], 0, 250);
 }
 
 function get_primary_key($conn, $db, $table) {
@@ -571,6 +593,7 @@ function render_sidebar_db_group($dbitem, $tables, $selected_db, $selected_table
 function nav_tabs($level, $db, $table, $active) {
     $tabs = [];
     if ($level === 'server') {
+        $hist_cnt = count($_SESSION['query_history'] ?? []);
         $tabs = [
             'databases' => 'Databases',
             'sql' => 'SQL',
@@ -579,7 +602,7 @@ function nav_tabs($level, $db, $table, $active) {
             'users' => 'User accounts',
             'export' => 'Export',
             'import' => 'Import',
-            'history' => 'Query history'
+            'history' => 'Audit & History' . ($hist_cnt > 0 ? " ($hist_cnt)" : '')
         ];
     } elseif ($level === 'database') {
         $tabs = [

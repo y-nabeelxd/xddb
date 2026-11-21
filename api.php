@@ -158,10 +158,21 @@ switch ($action) {
 
         $conn->select_db($db);
 
+        // Fetch old value before update
+        $old_val = null;
+        $before_row = null;
+        $old_q = "SELECT * FROM `" . str_replace('`', '``', $table) . "` WHERE `" . str_replace('`', '``', $pk_col) . "` = '" . $conn->real_escape_string($pk_val) . "'";
+        $old_res = $conn->query($old_q);
+        if ($old_res && $b_row = $old_res->fetch_assoc()) {
+            $before_row = $b_row;
+            $old_val = $b_row[$col] ?? null;
+        }
+
         $escaped_table = esc_sql_id($table);
         $escaped_col = esc_sql_id($col);
         $escaped_pk = esc_sql_id($pk_col);
 
+        $start_time = microtime(true);
         if ($is_null) {
             $sql = "UPDATE $escaped_table SET $escaped_col = NULL WHERE $escaped_pk = ?";
             $stmt = $conn->prepare($sql);
@@ -179,10 +190,47 @@ switch ($action) {
         }
 
         if ($stmt->execute()) {
+            $duration = (microtime(true) - $start_time) * 1000;
+            $new_val = $is_null ? null : $val;
+            $after_row = $before_row ?: [];
+            $after_row[$col] = $new_val;
+
+            $executed_sql = "UPDATE `" . str_replace('`', '``', $table) . "` SET `" . str_replace('`', '``', $col) . "` = " . ($is_null ? "NULL" : "'" . $conn->real_escape_string($val) . "'") . " WHERE `" . str_replace('`', '``', $pk_col) . "` = '" . $conn->real_escape_string($pk_val) . "'";
+            
+            add_query_history($executed_sql, $duration, [
+                'type' => 'UPDATE',
+                'db' => $db,
+                'table' => $table,
+                'summary' => "Inline cell update in `$table`: changed `$col` for `$pk_col` = '$pk_val'",
+                'diff' => [
+                    [
+                        'field' => $col,
+                        'old' => $old_val,
+                        'new' => $new_val
+                    ]
+                ],
+                'before' => $before_row ?: [$col => $old_val],
+                'after' => $after_row,
+                'affected_rows' => $stmt->affected_rows,
+                'status' => 'success'
+            ]);
+
             json_response(['success' => true, 'affected_rows' => $stmt->affected_rows]);
         } else {
             json_response(['error' => $stmt->error], 500);
         }
+        break;
+
+    case 'get_history':
+        json_response([
+            'success' => true,
+            'history' => $_SESSION['query_history'] ?? []
+        ]);
+        break;
+
+    case 'clear_history':
+        $_SESSION['query_history'] = [];
+        json_response(['success' => true]);
         break;
 
     default:
