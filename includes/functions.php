@@ -1,7 +1,7 @@
 <?php
 
 if (!defined('XDDB_VERSION')) {
-    define('XDDB_VERSION', '1.3.3');
+    define('XDDB_VERSION', '1.3.4');
 }
 
 function esc_sql_id($identifier) {
