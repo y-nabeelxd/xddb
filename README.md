@@ -1,6 +1,6 @@
 <div align="center">
   <h1>XDDB</h1>
-  <p>An elegant, fast and modern MySQL/MariaDB database manager.</p>
+  <p>A fast, modern web-based database manager for MySQL and MariaDB.</p>
   <p><strong>100% Free and Open Source</strong></p>
 </div>
 
@@ -8,21 +8,20 @@
 
 ## Overview
 
-XDDB is an elegant, lightweight and incredibly fast database manager for MySQL/MariaDB databases. It allows you to manage your databases in a very sleek and powerful manner. Since this project is 100% free and Open Source, it is transparent and community focused.
+XDDB is a lightweight database manager for MySQL and MariaDB databases. Built with pure PHP and vanilla JavaScript, it gives developers and system administrators a clean interface to inspect tables, run queries, edit records, and track database changes without requiring heavy frameworks or external dependencies.
 
-## Why use XDDB?
+## Key Features
 
-Many database managers can be slow and outdated. However, using XDDB allows you to manage your databases in a much more efficient way!
+- **Interactive Data Charts:** Generate bar, line, pie, doughnut, and polar area charts directly from query results or browsed tables. Choose label and value columns, preview the chart in real time, and export directly to PNG images.
+- **Audit Log & Change Tracking:** Every update, insert, delete, and schema modification is recorded with column-level before and after values, row snapshots, and query execution times.
+- **Inline Cell Editing:** Double-click any cell in browse view to edit values in place, saving changes instantly by pressing Enter or clicking outside.
+- **Multi-Row Bulk Operations:** Select multiple records to bulk copy, bulk edit in a side-by-side view, or bulk delete in one pass.
+- **Targeted Exports:** Export entire databases, full tables, or only the specific rows you select into SQL, CSV, JSON, or XML formats.
+- **Offline SQL Editor:** Full syntax highlighting, SQL auto-completion, query formatting, and reusable code snippets that function completely offline.
+- **Schema & Relationship Inspection:** View table structures, column types, storage engines, foreign keys, indexes, and table sizes.
+- **Zero Configuration Service:** Control the background server with a single `xddb` CLI command (`start`, `stop`, `restart`, `status`) on Linux and Windows.
 
-- **Fast:** Very fast, with near instant query speeds, data navigation and support for large data sets.
-- **Beautiful UI:** Modern interface with both dark/light modes, giving a high end enterprise feel.
-- **Schema Visualiser:** Easily map out relationships between tables in your database.
-- **Powerful Query Editor:** An advanced editor with syntax highlighting, auto-complete and query history.
-- **No Configuration:** Simply run the command line script and XDDB will run instantly in the background. There is no complicated configuration required on servers!
-
-## Who is this for?
-
-XDDB is perfect for developers, database admins and sysadmins who want a modern way to manage their databases. Whether you're creating a prototype quickly, managing a large production database or simply running a quick query, XDDB is the perfect tool for you.
+---
 
 ## Installation
 
@@ -79,11 +78,11 @@ iwr -useb https://nabeelxd.vercel.app/xddb-windows-installer.ps1 | iex
 
 ### 4. Manual Installation (Any OS)
 
-XDDB is written in pure PHP and can run on any platform (Windows, macOS, or Linux):
+XDDB is written in pure PHP and runs on any platform (Windows, macOS, or Linux):
 
 1. Download the latest `xddb.zip` from the [Releases page](https://github.com/y-nabeelxd/xddb/releases).
-2. Extract the file into your desired directory.
-3. Run it using any PHP server environment (XAMPP, WAMP, Laragon, MAMP, Herd) or PHP's built-in web server:
+2. Extract the archive into your desired folder.
+3. Start it using any PHP server environment (XAMPP, WAMP, Laragon, MAMP, Herd) or PHP's built-in web server:
    ```bash
    php -S 127.0.0.1:7070
    ```
@@ -92,7 +91,7 @@ XDDB is written in pure PHP and can run on any platform (Windows, macOS, or Linu
 
 ## Managing XDDB
 
-Once installed via any automated installer, you can control the XDDB service using the `xddb` CLI command:
+Once installed via an automated installer, you can control the XDDB service using the `xddb` CLI command:
 
 | Command | Action |
 | :--- | :--- |
@@ -113,12 +112,14 @@ http://127.0.0.1:7070/
 ```
 *(or your remote server's IP address: `http://<SERVER_IP>:7070/`)*
 
+---
+
 ## Contributing
 
-We love contributors! As this is an Open Source project, any contributions you make will improve XDDB for everyone. Whether you're contributing to fix a bug, improve the UI, add new features or documentations, feel free to fork this repo, make a branch and make a Pull Request!
+Contributions are welcome. If you find a bug, want to improve the interface, or have a feature idea, feel free to open an issue or submit a pull request.
 
 ---
 
 <div align="center">
-  <i>Developed by NabeelXDD</i>
+  <i>Developed by Nabeel XDD · TeamXDD</i>
 </div>
