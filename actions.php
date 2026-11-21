@@ -12,9 +12,16 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once __DIR__ . '/includes/functions.php';
 
-mysqli_report(MYSQLI_REPORT_OFF);
+if (function_exists('mysqli_report')) {
+    mysqli_report(MYSQLI_REPORT_OFF);
+}
 
 if (!isset($_SESSION['user'])) {
+    redirect('index.php');
+}
+
+if (!extension_loaded('mysqli') || !class_exists('mysqli')) {
+    flash_message('error', 'PHP MySQLi extension is not enabled in php.ini.');
     redirect('index.php');
 }
 

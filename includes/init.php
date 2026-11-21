@@ -20,6 +20,15 @@ if (!isset($_SESSION['user']) && basename($_SERVER['PHP_SELF']) !== 'index.php')
     redirect('index.php');
 }
 
+if (!extension_loaded('mysqli') || !class_exists('mysqli')) {
+    flash_message('error', 'PHP MySQLi extension is not enabled in php.ini.');
+    redirect('index.php');
+}
+
+if (function_exists('mysqli_report')) {
+    mysqli_report(MYSQLI_REPORT_OFF);
+}
+
 $host = $_SESSION['host'] ?? '';
 $user = $_SESSION['user'] ?? '';
 $pass = $_SESSION['pass'] ?? '';
@@ -38,8 +47,6 @@ if ($user) {
         $conn->set_charset('utf8mb4');
     }
 }
-
-mysqli_report(MYSQLI_REPORT_OFF);
 
 $selected_db = $_GET['db'] ?? '';
 $selected_table = $_GET['table'] ?? '';

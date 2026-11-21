@@ -12,13 +12,19 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once __DIR__ . '/includes/functions.php';
 
-mysqli_report(MYSQLI_REPORT_OFF);
+if (function_exists('mysqli_report')) {
+    mysqli_report(MYSQLI_REPORT_OFF);
+}
 
 function json_response($data, $status = 200) {
     http_response_code($status);
     header('Content-Type: application/json');
     echo json_encode($data);
     exit;
+}
+
+if (!extension_loaded('mysqli') || !class_exists('mysqli')) {
+    json_response(['error' => 'PHP MySQLi extension is not enabled in php.ini'], 500);
 }
 
 if (!isset($_SESSION['user'])) {

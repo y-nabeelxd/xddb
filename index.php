@@ -30,49 +30,57 @@ if (isset($_GET['logout'])) {
 }
 
 $error = '';
+$mysqli_missing = (!extension_loaded('mysqli') || !class_exists('mysqli'));
+if ($mysqli_missing) {
+    $error = 'PHP MySQLi extension is not enabled. Please enable "extension=mysqli" in your php.ini and restart your PHP server.';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $submitted_token = $_POST['csrf_token'] ?? '';
-    if (!empty($_SESSION['csrf_token']) && !verify_csrf_token($submitted_token)) {
-        $error = 'Security validation failed. Please refresh the page and try again.';
+    if ($mysqli_missing) {
+        $error = 'Cannot connect: PHP MySQLi extension is not enabled in your PHP configuration (php.ini).';
     } else {
-        $host = $_POST['server_address'] ?? '127.0.0.1';
-        $user = trim($_POST['username'] ?? '');
-        $pass = $_POST['password'] ?? '';
-        $port = (int)($_POST['db_port'] ?? 3306);
-        $db_type = $_POST['db_type'] ?? 'MySQL';
+        $submitted_token = $_POST['csrf_token'] ?? '';
+        if (!empty($_SESSION['csrf_token']) && !verify_csrf_token($submitted_token)) {
+            $error = 'Security validation failed. Please refresh the page and try again.';
+        } else {
+            $host = $_POST['server_address'] ?? '127.0.0.1';
+            $user = trim($_POST['username'] ?? '');
+            $pass = $_POST['password'] ?? '';
+            $port = (int)($_POST['db_port'] ?? 3306);
+            $db_type = $_POST['db_type'] ?? 'MySQL';
 
-        if ($user) {
-            $conn = @new mysqli($host, $user, $pass, '', $port);
-            if ($conn->connect_error) {
-                $msg = $conn->connect_error;
-                if (stripos($msg, 'Access denied') !== false) {
-                    if ($pass !== '' && stripos($msg, 'using password: YES') !== false) {
-                        $error = 'Password is incorrect.';
-                    } elseif ($pass === '') {
-                        $error = 'Password is required for this account.';
+            if ($user) {
+                $conn = @new mysqli($host, $user, $pass, '', $port);
+                if ($conn->connect_error) {
+                    $msg = $conn->connect_error;
+                    if (stripos($msg, 'Access denied') !== false) {
+                        if ($pass !== '' && stripos($msg, 'using password: YES') !== false) {
+                            $error = 'Password is incorrect.';
+                        } elseif ($pass === '') {
+                            $error = 'Password is required for this account.';
+                        } else {
+                            $error = 'Invalid username or password.';
+                        }
                     } else {
-                        $error = 'Invalid username or password.';
+                        $error = 'Connection failed: ' . $msg;
                     }
                 } else {
-                    $error = 'Connection failed: ' . $msg;
+                    session_regenerate_id(true);
+                    $_SESSION['host'] = $host;
+                    $_SESSION['user'] = $user;
+                    $_SESSION['pass'] = $pass;
+                    $_SESSION['port'] = $port;
+                    $_SESSION['db_type'] = $db_type;
+                    $_SESSION['favorites'] = $_SESSION['favorites'] ?? [];
+                    $_SESSION['recent'] = $_SESSION['recent'] ?? [];
+                    $_SESSION['query_history'] = $_SESSION['query_history'] ?? [];
+                    get_csrf_token(); // generate fresh token
+                    header('Location: dashboard.php');
+                    exit;
                 }
             } else {
-                session_regenerate_id(true);
-                $_SESSION['host'] = $host;
-                $_SESSION['user'] = $user;
-                $_SESSION['pass'] = $pass;
-                $_SESSION['port'] = $port;
-                $_SESSION['db_type'] = $db_type;
-                $_SESSION['favorites'] = $_SESSION['favorites'] ?? [];
-                $_SESSION['recent'] = $_SESSION['recent'] ?? [];
-                $_SESSION['query_history'] = $_SESSION['query_history'] ?? [];
-                get_csrf_token(); // generate fresh token
-                header('Location: dashboard.php');
-                exit;
+                $error = 'Username is required.';
             }
-        } else {
-            $error = 'Username is required.';
         }
     }
 }
