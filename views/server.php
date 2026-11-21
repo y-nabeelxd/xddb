@@ -620,7 +620,7 @@ switch ($active_tab) {
                 Export JSON
               </button>
               <form action="actions.php" method="POST" style="margin:0;" onsubmit="return confirm('Are you sure you want to clear all query and audit history?');">
-                <input type="hidden" name="csrf_token" value="<?= esc(csrf_token()) ?>">
+                <?= csrf_field() ?>
                 <input type="hidden" name="action" value="clear_query_history">
                 <button type="submit" class="btn btn-danger btn-sm" style="display:inline-flex;align-items:center;gap:6px;">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>

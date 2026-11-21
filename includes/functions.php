@@ -1,7 +1,7 @@
 <?php
 
 if (!defined('XDDB_VERSION')) {
-    define('XDDB_VERSION', '1.3.7');
+    define('XDDB_VERSION', '1.3.8');
 }
 
 function esc_sql_id($identifier) {
@@ -13,6 +13,10 @@ function get_csrf_token() {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
     return $_SESSION['csrf_token'];
+}
+
+function csrf_token() {
+    return get_csrf_token();
 }
 
 function verify_csrf_token($token) {
